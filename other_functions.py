@@ -1,7 +1,9 @@
+import openpyxl
 import win32com.client
 import pandas as pd
 import pyperclip
 import logging
+import os
 
 from openpyxl import load_workbook
 from openpyxl.styles import Border, Side, Alignment
@@ -237,3 +239,174 @@ def get_last_n_working_days(n):
     formatted_dates = [date.strftime('%d.%m.%Y') for date in last_15_working_days]
 
     return formatted_dates
+
+
+def delete_file(filename):
+    """
+    Deletes the file specified by filename if it exists.
+
+    Args:
+        filename (str): The name of the file to delete.  Can be a relative or absolute path.
+
+    Returns:
+        bool: True if the file was successfully deleted, False if the file did not exist or there was an error.
+    """
+    try:
+        if os.path.exists(filename):
+            os.remove(filename)
+            print(f"File '{filename}' deleted successfully.")
+            return True
+        else:
+            print(f"File '{filename}' does not exist.")
+            return False
+    except Exception as e:
+        print(f"Error deleting file '{filename}': {e}")
+        return False
+
+
+def vl10d_process_data(file_name_raw_data, file_name_cleaned_data):
+    # Wczytaj plik z pominięciem pustych wierszy i kolumn
+    df_vl10d = pd.read_csv(file_name_raw_data, sep="\t", encoding='utf-16', skip_blank_lines=True)
+    df_vl10d.dropna(how='all', inplace=True)  # usuwa całe puste wiersze
+    df_vl10d.dropna(axis=1, how='all', inplace=True)  # usuwa całe puste kolumny
+
+    new_columns_names = {
+        "Unnamed: 3": "SAP_nr",
+        "Unnamed: 5": "quantity",
+        "Unnamed: 6": "quantity_2",
+        "Unnamed: 7": "unit",
+        "Unnamed: 9": "stock",
+        "Unnamed: 12": "unit_2",
+        "Unnamed: 13": "PrDst",
+        "Unnamed: 15": "product_name",
+        "Unnamed: 21": "goods_issue_date",
+        "Unnamed: 23": "weight",
+        "Unnamed: 25": "weight_unit",
+        "Data utw.": "creation_date",
+        "Odb.mater.": "goods_recepient_number",
+        "Nazwa 1": "goods_recepient_name",
+        "Autor": "author",
+        "Dok.spraw.": "document_number",
+    }
+
+    df_vl10d.rename(columns=new_columns_names, inplace=True)
+
+    # delete first row
+    df_vl10d.drop(index=0, inplace=True)
+
+    goods_recepient_number = None
+    goods_recepient_name = None
+    author = None
+    doc_number = None
+
+    for row in df_vl10d.iterrows():
+        idx = row[0]
+        # check if SAP_nr is NaN - if so, it's a delivery note's header row
+        if pd.isna(row[1]["SAP_nr"]):
+            # if so, set goods_recepient_number, goods_recepient_name and author
+            goods_recepient_number = row[1]["goods_recepient_number"]
+            goods_recepient_name = row[1]["goods_recepient_name"]
+            author = row[1]["author"]
+            doc_number = row[1]["document_number"]
+        else:
+            # if not, fill goods_recepient_number, goods_recepient_name and author columns
+            # with the values from the last header row
+            df_vl10d.at[idx, "goods_recepient_number"] = goods_recepient_number
+            df_vl10d.at[idx, "goods_recepient_name"] = goods_recepient_name
+            df_vl10d.at[idx, "author"] = author
+            df_vl10d.at[idx, "document_number"] = doc_number
+
+    # drop rows with NaN in SAP_nr column
+    df_vl10d.dropna(subset=["SAP_nr"], inplace=True)
+
+    # drop columns that are not needed
+    columns_to_drop = [
+        "quantity_2",
+        "RDok",
+        "DSprz",
+        "Trasa",
+        "unit_2",
+        "PrDst",
+        "   Waga brutto",
+        "JWg",
+        "IncoT",
+        "Inco. 2",
+        "weight",
+        "creation_date",
+        "weight_unit",
+    ]
+    df_vl10d.drop(columns=columns_to_drop, inplace=True)
+
+    strings_to_filter_out_1 = ['ZRV', 'ZAR', 'ZRI', 'ZJA', 'ZRE', 'R4', 'R7', 'ZFA', 'R6', 'R8', 'Q4', 'R3', 'R2',
+                               'Behang Screen', 'EFL', 'ABR', 'R5', 'ZIN', 'ERS', 'ASA', 'ASI', 'MDA']
+    strings_to_filter_out_2 = ["WROBELM", "KICIAM", "PLATINE", "MONTAZS100", "POLICHANCZUK"]
+    strings_to_filter_out_3 = ["103702"]
+    strings_to_filter_out_4 = ["99"]
+
+    # colname: list_of_strings
+    # filter_criteria = {'product_name': strings_to_filter_1,
+    #                    'author': strings_to_filter_2,
+    #                     'goods_recepient_number': strings_to_filter_3}
+
+    # Use the .str.startswith() method on the specified column and negate the boolean mask
+    df_filtered = df_vl10d[~df_vl10d['product_name'].str.startswith(tuple(strings_to_filter_out_1))]
+    df_filtered = df_filtered[~df_filtered['author'].isin(strings_to_filter_out_2)]
+    df_filtered = df_filtered[~df_filtered['goods_recepient_number'].isin(strings_to_filter_out_3)]
+    df_filtered = df_filtered[~df_filtered['SAP_nr'].str.startswith(tuple(strings_to_filter_out_4))]
+
+    # Now, df_filtered contains only the rows where the 'product_name' column
+    # does NOT start with items in strings_to_filter
+
+    df_filtered.to_excel(file_name_cleaned_data, index=False)
+    return df_filtered
+
+
+def run_excel_file_and_adjust_col_width(file_path):
+    """
+    Opens the Excel file using the operating system's default application.
+
+    Args:
+        file_path (str): The path to the Excel file to be opened.
+
+    Returns:
+        bool: True if the file was opened successfully, False otherwise.
+    """
+    try:
+        # Check if the file exists
+        if not os.path.exists(file_path):
+            print(f"File does not exist: {file_path}")
+            return False
+
+        # Load the workbook to adjust column widths
+        try:
+            workbook = openpyxl.load_workbook(file_path)
+            sheet = workbook.active
+
+            # Adjust column widths for columns A to J
+            for column_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']:
+                max_length = 0
+                for cell in sheet[column_letter]:
+                    try:
+                        cell_value_length = len(str(cell.value))
+                        if cell_value_length > max_length:
+                            max_length = cell_value_length
+                    except TypeError:
+                        pass  # Handle cases where cell.value is None
+                adjusted_width = (max_length + 2)  # Add some padding
+                sheet.column_dimensions[column_letter].width = adjusted_width
+
+            workbook.save(file_path)  # Save changes to the file
+        except Exception as e:
+            print(f"Error adjusting column widths: {e}")
+
+        # Open the file using the default application
+        if os.name == 'nt':  # For Windows
+            os.startfile(file_path)
+        else:
+            print("Unsupported operating system.")
+            return False
+        return True
+
+    except Exception as e:
+        print(f"An error occurred while opening the file: {e}")
+        return False

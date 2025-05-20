@@ -917,3 +917,27 @@ def zpp3u_va03_get_data(session):
             break
 
     return retrieved_data
+
+
+def vl10d_load_variant_and_export_data(session, file_path, file_name):
+    session.findById("wnd[0]/tbar[0]/okcd").text = "/nvl10d"
+    session.findById("wnd[0]").sendVKey(0)
+    session.findById("wnd[0]").sendVKey(17)
+    session.findById("wnd[1]/usr/txtV-LOW").text = "SHIP_LU_PPS001"
+    session.findById("wnd[1]/usr/txtENAME-LOW").text = ""
+    session.findById("wnd[1]").sendVKey(8)
+    session.findById("wnd[0]").sendVKey(8)
+    session.findById("wnd[0]/mbar/menu[0]/menu[1]/menu[2]").select()
+    session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").select()
+    session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").setFocus()
+    session.findById("wnd[1]/tbar[0]/btn[0]").press()
+    session.findById("wnd[1]/usr/ctxtDY_PATH").text = file_path
+    session.findById("wnd[1]").sendVKey(4)
+    session.findById("wnd[2]").sendVKey(4)
+    session.findById("wnd[3]/usr/ctxtDY_FILENAME").text = file_name
+    session.findById("wnd[3]/usr/ctxtDY_FILE_ENCODING").text = "0000"
+    session.findById("wnd[3]/usr/ctxtDY_FILE_ENCODING").setFocus()
+    session.findById("wnd[3]/usr/ctxtDY_FILE_ENCODING").caretPosition = 4
+    session.findById("wnd[3]/tbar[0]/btn[0]").press()
+    session.findById("wnd[2]/tbar[0]/btn[0]").press()
+    session.findById("wnd[1]/tbar[0]/btn[0]").press()

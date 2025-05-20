@@ -10,7 +10,8 @@ from itertools import cycle
 import pandas as pd
 
 from sap_connection import get_last_session
-from other_functions import append_status_to_excel
+from other_functions import append_status_to_excel, delete_file, vl10d_process_data, run_excel_file_and_adjust_col_width
+from sap_transactions import vl10d_load_variant_and_export_data
 
 
 BASE_PATH = Path(
@@ -30,8 +31,9 @@ if __name__ == "__main__":
     start_time = datetime.now().strftime("%H:%M:%S")
 
     file_paths = {
-        "xxx": f"historical_data/xxx_{today}.xlsx",
-        "yyy": f"historical_data/yyy_{today}.xlsx",
+        "vl10d_raw_data": f"historical_data/vl10d_all_items_{today}.xls",
+        "vl10d_clean_data": f"vl10d_clean_data_{today}.xlsx",
+        "historical_data": "historical_data",
     }
 
     paths = {key: BASE_PATH / filename for key, filename in file_paths.items()}
@@ -55,9 +57,19 @@ if __name__ == "__main__":
     try:
         sess1, tr1, nu1 = get_last_session(max_num_of_sessions=6)
 
-        # TODO: export vl10d_all_items.xls from VL10D transaction
-        # TODO: process the data and save it to excel file vl10d.xlsx
+        # delete file
+        delete_file(paths["vl10d_raw_data"])
 
+        # TODO: export vl10d_all_items.xls from VL10D transaction
+        vl10d_load_variant_and_export_data(
+            session=sess1,
+            file_path=str(paths["historical_data"]),
+            file_name=paths["vl10d_raw_data"].name,
+        )
+        # TODO: process the data and save it to excel file vl10d.xlsx
+        vl10d_process_data(file_name_raw_data=paths["vl10d_raw_data"], file_name_cleaned_data=paths["vl10d_clean_data"])
+
+        run_excel_file_and_adjust_col_width(paths['vl10d_clean_data'])
         # Handle the information for status file
         # program_status["COHV_CONVERSION_SYSTEM_MESSAGE"] = result_sap_messages
 
@@ -70,6 +82,6 @@ if __name__ == "__main__":
         end_time = datetime.now().strftime("%H:%M:%S")
         program_status["start_time"] = start_time
         program_status["end_time"] = end_time
-        append_status_to_excel(
-            status_file, program_status, ERROR_LOG_PATH, sheet_name="COHV_CONVERSION"
-        )
+        # append_status_to_excel(
+        #     status_file, program_status, ERROR_LOG_PATH, sheet_name="COHV_CONVERSION"
+        # )
