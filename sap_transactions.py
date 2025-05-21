@@ -3,7 +3,7 @@ import time
 
 import pyperclip
 import pywintypes
-from sap_functions import clear_sap_warnings, get_sap_message
+from sap_functions import clear_sap_warnings, get_sap_message, vl10d_vl10c_select_layout
 
 
 def pk03_get_container_data(mat_nr, plant, prod_supply_area, session):
@@ -919,14 +919,15 @@ def zpp3u_va03_get_data(session):
     return retrieved_data
 
 
-def vl10d_load_variant_and_export_data(session, file_path, file_name):
-    session.findById("wnd[0]/tbar[0]/okcd").text = "/nvl10d"
+def vl10d_vl10c_load_variant_and_export_data(session, file_path, file_name, transaction_name, variant_name):
+    session.findById("wnd[0]/tbar[0]/okcd").text = f"/n{transaction_name}"
     session.findById("wnd[0]").sendVKey(0)
     session.findById("wnd[0]").sendVKey(17)
-    session.findById("wnd[1]/usr/txtV-LOW").text = "SHIP_LU_PPS001"
+    session.findById("wnd[1]/usr/txtV-LOW").text = variant_name
     session.findById("wnd[1]/usr/txtENAME-LOW").text = ""
     session.findById("wnd[1]").sendVKey(8)
     session.findById("wnd[0]").sendVKey(8)
+    vl10d_vl10c_select_layout(session, "/ASHIP_PPS01")
     session.findById("wnd[0]/mbar/menu[0]/menu[1]/menu[2]").select()
     session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").select()
     session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").setFocus()

@@ -4,6 +4,7 @@ import pandas as pd
 import pyperclip
 import logging
 import os
+import io
 
 from openpyxl import load_workbook
 from openpyxl.styles import Border, Side, Alignment
@@ -331,22 +332,20 @@ def vl10d_process_data(file_name_raw_data, file_name_cleaned_data):
         "JWg",
         "IncoT",
         "Inco. 2",
+        "Incoterms 2"
         "weight",
         "creation_date",
         "weight_unit",
     ]
-    df_vl10d.drop(columns=columns_to_drop, inplace=True)
+    # Column names has different values. Sometimes they are shortened
+    valid_columns_to_drop = [col for col in columns_to_drop if col in df_vl10d.columns]
+    df_vl10d.drop(columns=valid_columns_to_drop, inplace=True)
 
     strings_to_filter_out_1 = ['ZRV', 'ZAR', 'ZRI', 'ZJA', 'ZRE', 'R4', 'R7', 'ZFA', 'R6', 'R8', 'Q4', 'R3', 'R2',
-                               'Behang Screen', 'EFL', 'ABR', 'R5', 'ZIN', 'ERS', 'ASA', 'ASI', 'MDA']
-    strings_to_filter_out_2 = ["WROBELM", "KICIAM", "PLATINE", "MONTAZS100", "POLICHANCZUK"]
+                               'Behang Screen', 'EFL', 'ABR', 'R5', 'ZIN', 'ERS', 'ASA', 'ASI', 'MDA', 'POS']
+    strings_to_filter_out_2 = ["WROBELM", "KICIAM", "PLATINE", "MONTAZS100", "POLICHANCZUK", "WOZNIAKT"]
     strings_to_filter_out_3 = ["103702"]
     strings_to_filter_out_4 = ["99"]
-
-    # colname: list_of_strings
-    # filter_criteria = {'product_name': strings_to_filter_1,
-    #                    'author': strings_to_filter_2,
-    #                     'goods_recepient_number': strings_to_filter_3}
 
     # Use the .str.startswith() method on the specified column and negate the boolean mask
     df_filtered = df_vl10d[~df_vl10d['product_name'].str.startswith(tuple(strings_to_filter_out_1))]
@@ -357,7 +356,7 @@ def vl10d_process_data(file_name_raw_data, file_name_cleaned_data):
     # Now, df_filtered contains only the rows where the 'product_name' column
     # does NOT start with items in strings_to_filter
 
-    df_filtered.to_excel(file_name_cleaned_data, index=False)
+    # df_filtered.to_excel(file_name_cleaned_data, index=False)
     return df_filtered
 
 
@@ -383,7 +382,7 @@ def run_excel_file_and_adjust_col_width(file_path):
             sheet = workbook.active
 
             # Adjust column widths for columns A to J
-            for column_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']:
+            for column_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']:
                 max_length = 0
                 for cell in sheet[column_letter]:
                     try:
@@ -409,4 +408,42 @@ def run_excel_file_and_adjust_col_width(file_path):
 
     except Exception as e:
         print(f"An error occurred while opening the file: {e}")
+        return False
+
+
+def copy_df_column_to_clipboard(df, column_name):
+    """
+    Copies the specified column from a pandas DataFrame to the clipboard using pyperclip.
+
+    Args:
+        df (pd.DataFrame): The pandas DataFrame containing the data.
+        column_name (str): The name of the column to copy.
+
+    Returns:
+        bool: True if the data was copied successfully, False otherwise.
+    """
+    try:
+        # Check if the column exists in the DataFrame
+        if column_name not in df.columns:
+            print(f"Error: Column '{column_name}' not found in DataFrame.")
+            return False
+
+        # # Select the column and convert it to a string format
+        # column_data = df[column_name].astype(str)
+        # column_string = column_data.to_string(header=True, index=False)
+
+        # Select the column
+        column_data = df[column_name]
+
+        # Convert to string with tab separation
+        output = io.StringIO()
+        column_data.to_csv(output, sep='\t', header=False, index=False)
+        column_string = output.getvalue()
+        output.close()
+
+        # Copy the string to the clipboard using pyperclip
+        pyperclip.copy(column_string)
+        return True
+    except Exception as e:
+        print(f"An error occurred: {e}")
         return False

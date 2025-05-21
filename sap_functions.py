@@ -1,6 +1,8 @@
 import multiprocessing
 import sys
 import time
+from ctypes import c_uint
+
 import psutil
 
 from openpyxl import load_workbook
@@ -301,3 +303,92 @@ def sap_element_exists(session, element_id):
     except:
         return False
 
+
+def zsbe_load_and_export_data(session, file_path, file_name):
+        # Set plant code
+        session.findById("wnd[0]/usr/ctxtS_WERKS-LOW").text = "2101"
+
+        # Clear ALVL field
+        session.findById("wnd[0]/usr/ctxt%ALVL").text = ""
+
+        # Click material push button
+        session.findById("wnd[0]/usr/btn%_S_MATNR_%_APP_%-VALU_PUSH").press()
+
+        # Press buttons in popup window
+        session.findById("wnd[1]/tbar[0]/btn[24]").press()
+        session.findById("wnd[1]/tbar[0]/btn[8]").press()
+
+        # Set layout variant
+        session.findById("wnd[0]/usr/ctxt%ALVL").text = "/0101_CLEAN3"
+
+        # Press F8 key (Execute)
+        session.findById("wnd[0]").sendVKey(8)
+
+        # Select Export menu option: System > List > Save > Local File
+        session.findById("wnd[0]/mbar/menu[0]/menu[3]/menu[1]").select()
+
+        # Set focus on list box in export dialog
+        session.findById("wnd[1]/usr/cmbG_LISTBOX").setFocus()
+
+        # Press Continue button
+        session.findById("wnd[1]/tbar[0]/btn[0]").press()
+
+        # Set export path and filename
+        session.findById("wnd[1]/usr/ctxtDY_PATH").text = file_path
+        session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = file_name
+
+        # Press Save button
+        session.findById("wnd[1]/tbar[0]/btn[0]").press()
+
+
+def vl10d_vl10c_select_layout(session, target_layout_name="ASHIP_PPS01"):
+    """
+    Ta funkcja nie jest dopracowana. Nie działa dobrze wyszukiwanie Layoutu na wielu stronach. Dlatego utworzyłem
+    layout,którego nazwa zaczyna się od "A" - żeby był na górze listy.
+    :param session:
+    :param target_layout_name:
+    :return:
+    """
+    layout_found = False
+
+    session.findById("wnd[0]").sendVKey(33)  # Opens the layout selection dialog
+
+    try:
+        # Get the vertical scrollbar object
+        # The path might vary; "wnd[1]/usr" is common for the layout dialog
+        v_scrollbar = session.findById("wnd[1]/usr").verticalScrollbar
+
+        # max_scroll_position = v_scrollbar.Maximum
+        page_size = v_scrollbar.PageSize  # Get the page size for efficient scrolling
+
+        # Loop through scroll positions
+        # I assume that there are no more than 5 pages
+        for current_scroll_position in range(v_scrollbar.Minimum, 5 * page_size, page_size):
+            v_scrollbar.position = current_scroll_position  # Set scroll position
+
+            # Iterate through the visible rows on the current scrolled view
+            for i in range(3+current_scroll_position, page_size+current_scroll_position+3):  # 2 rows for header of the table
+                try:
+                    layout_label = session.findById(f"wnd[1]/usr/lbl[1,{i}]")
+                    if layout_label.text == target_layout_name:
+                        layout_label.setFocus()
+                        layout_found = True
+                        break  # Exit inner loop
+                except Exception as e:
+                    # This exception usually means the label object for this row doesn't exist
+                    # (e.g., we've gone past the last visible row)
+                    pass  # Continue to the next visible row or scroll position
+
+            if layout_found:
+                break  # Exit outer loop if layout found
+
+    except Exception as e:
+        print(f"Error during layout selection: {e}")
+        layout_found = False
+
+    if layout_found:
+        session.findById("wnd[1]").sendVKey(2)  # Press Enter to select the focused layout
+        print(f"Layout '{target_layout_name}' selected.")
+    else:
+        session.findById("wnd[1]").sendVKey(12)  # Press Esc to close the dialog if not found
+        print(f"Layout '{target_layout_name}' not found.")
