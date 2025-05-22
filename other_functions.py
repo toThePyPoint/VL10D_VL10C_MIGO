@@ -271,6 +271,9 @@ def vl10d_process_data(file_name_raw_data):
     df_vl10d.dropna(how='all', inplace=True)  # usuwa całe puste wiersze
     # df_vl10d.dropna(axis=1, how='all', inplace=True)  # usuwa całe puste kolumny
 
+    # Add goods_recepient_number column
+    df_vl10d["goods_recepient_number"] = df_vl10d["Odb.mater."]
+
     new_columns_names = {
         "Unnamed: 3": "SAP_nr",
         "Unnamed: 5": "quantity",
@@ -284,7 +287,7 @@ def vl10d_process_data(file_name_raw_data):
         "Unnamed: 23": "weight",
         "Unnamed: 25": "weight_unit",
         "Data utw.": "creation_date",
-        "Odb.mater.": "goods_recepient_number",
+        "Odb.mater.": "doc_position",
         "Nazwa 1": "goods_recepient_name",
         "Autor": "author",
         "Dok.spraw.": "document_number",
@@ -396,7 +399,7 @@ def run_excel_file_and_adjust_col_width(file_path):
             sheet = workbook.active
 
             # Adjust column widths for columns A to J
-            for column_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N']:
+            for column_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O']:
                 max_length = 0
                 for cell in sheet[column_letter]:
                     try:
