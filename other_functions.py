@@ -265,11 +265,11 @@ def delete_file(filename):
         return False
 
 
-def vl10d_process_data(file_name_raw_data, file_name_cleaned_data):
+def vl10d_process_data(file_name_raw_data):
     # Wczytaj plik z pominięciem pustych wierszy i kolumn
     df_vl10d = pd.read_csv(file_name_raw_data, sep="\t", encoding='utf-16', skip_blank_lines=True)
     df_vl10d.dropna(how='all', inplace=True)  # usuwa całe puste wiersze
-    df_vl10d.dropna(axis=1, how='all', inplace=True)  # usuwa całe puste kolumny
+    # df_vl10d.dropna(axis=1, how='all', inplace=True)  # usuwa całe puste kolumny
 
     new_columns_names = {
         "Unnamed: 3": "SAP_nr",
@@ -288,6 +288,7 @@ def vl10d_process_data(file_name_raw_data, file_name_cleaned_data):
         "Nazwa 1": "goods_recepient_name",
         "Autor": "author",
         "Dok.spraw.": "document_number",
+        "BS": "sales_office"
     }
 
     df_vl10d.rename(columns=new_columns_names, inplace=True)
@@ -299,6 +300,7 @@ def vl10d_process_data(file_name_raw_data, file_name_cleaned_data):
     goods_recepient_name = None
     author = None
     doc_number = None
+    sales_office = None
 
     for row in df_vl10d.iterrows():
         idx = row[0]
@@ -309,6 +311,7 @@ def vl10d_process_data(file_name_raw_data, file_name_cleaned_data):
             goods_recepient_name = row[1]["goods_recepient_name"]
             author = row[1]["author"]
             doc_number = row[1]["document_number"]
+            sales_office = row[1]["sales_office"]
         else:
             # if not, fill goods_recepient_number, goods_recepient_name and author columns
             # with the values from the last header row
@@ -316,9 +319,14 @@ def vl10d_process_data(file_name_raw_data, file_name_cleaned_data):
             df_vl10d.at[idx, "goods_recepient_name"] = goods_recepient_name
             df_vl10d.at[idx, "author"] = author
             df_vl10d.at[idx, "document_number"] = doc_number
+            df_vl10d.at[idx, "sales_office"] = sales_office
 
     # drop rows with NaN in SAP_nr column
     df_vl10d.dropna(subset=["SAP_nr"], inplace=True)
+    # drop all empty columns, except "sales_office" column
+    # df_vl10d.dropna(axis=1, how='all', inplace=True)  # usuwa całe puste kolumny
+    cols_to_drop = [col for col in df_vl10d.columns if col != 'sales_office' and df_vl10d[col].isna().all()]
+    df_vl10d.drop(columns=cols_to_drop, inplace=True)
 
     # drop columns that are not needed
     columns_to_drop = [
@@ -332,26 +340,32 @@ def vl10d_process_data(file_name_raw_data, file_name_cleaned_data):
         "JWg",
         "IncoT",
         "Inco. 2",
-        "Incoterms 2"
+        "Incoterms 2",
         "weight",
         "creation_date",
         "weight_unit",
+        "Zamówienie",
+        "KDs",
     ]
     # Column names has different values. Sometimes they are shortened
     valid_columns_to_drop = [col for col in columns_to_drop if col in df_vl10d.columns]
     df_vl10d.drop(columns=valid_columns_to_drop, inplace=True)
 
     strings_to_filter_out_1 = ['ZRV', 'ZAR', 'ZRI', 'ZJA', 'ZRE', 'R4', 'R7', 'ZFA', 'R6', 'R8', 'Q4', 'R3', 'R2',
-                               'Behang Screen', 'EFL', 'ABR', 'R5', 'ZIN', 'ERS', 'ASA', 'ASI', 'MDA', 'POS']
+                               'Behang Screen', 'EFL', 'ABR', 'R5', 'ZIN', 'ERS', 'ASA', 'ASI', 'MDA', 'POS',
+                               'ZRO', 'ZRS', 'EDH', 'EPA', 'EDL', 'EDZ', 'ED_', 'Ständer', 'Koszty transportu',
+                               'EDQ', 'EDT']
     strings_to_filter_out_2 = ["WROBELM", "KICIAM", "PLATINE", "MONTAZS100", "POLICHANCZUK", "WOZNIAKT"]
-    strings_to_filter_out_3 = ["103702"]
+    # strings_to_filter_out_3 = ["103702"]
     strings_to_filter_out_4 = ["99"]
+    strings_to_filter_out_5 = ['Artikel']
 
     # Use the .str.startswith() method on the specified column and negate the boolean mask
     df_filtered = df_vl10d[~df_vl10d['product_name'].str.startswith(tuple(strings_to_filter_out_1))]
     df_filtered = df_filtered[~df_filtered['author'].isin(strings_to_filter_out_2)]
-    df_filtered = df_filtered[~df_filtered['goods_recepient_number'].isin(strings_to_filter_out_3)]
+    # df_filtered = df_filtered[~df_filtered['goods_recepient_number'].isin(strings_to_filter_out_3)]
     df_filtered = df_filtered[~df_filtered['SAP_nr'].str.startswith(tuple(strings_to_filter_out_4))]
+    df_filtered = df_filtered[~df_filtered['product_name'].isin(strings_to_filter_out_5)]
 
     # Now, df_filtered contains only the rows where the 'product_name' column
     # does NOT start with items in strings_to_filter
@@ -382,7 +396,7 @@ def run_excel_file_and_adjust_col_width(file_path):
             sheet = workbook.active
 
             # Adjust column widths for columns A to J
-            for column_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']:
+            for column_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N']:
                 max_length = 0
                 for cell in sheet[column_letter]:
                     try:
