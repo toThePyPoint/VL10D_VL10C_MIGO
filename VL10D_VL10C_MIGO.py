@@ -12,8 +12,9 @@ import pandas as pd
 from sap_connection import get_last_session
 from other_functions import append_status_to_excel, delete_file, vl10d_process_data, \
     run_excel_file_and_adjust_col_width, copy_df_column_to_clipboard, close_excel_file
-from sap_transactions import vl10d_vl10c_load_variant_and_export_data
-from sap_functions import open_one_transaction, zsbe_load_and_export_data, vl10d_vl10c_select_layout
+from sap_transactions import vl10d_vl10c_load_variant_and_export_data, mb52_load_sap_numbers_and_export_data
+from sap_functions import open_one_transaction, zsbe_load_and_export_data, simple_load_variant
+from helper_program_functions import filter_out_items_booked_to_0004_spec_cust_requirement_location
 
 BASE_PATH = Path(
     r"P:\Technisch\PLANY PRODUKCJI\PLANIŚCI\PP_TOOLS_TEMP_FILES\05_VL10D_VL10C_MIGO"
@@ -70,6 +71,8 @@ if __name__ == "__main__":
         "temp_folder": "temp",
         "zsbe_data_vl10d": "temp/zsbe_data_vl10d.xlsx",
         "zsbe_data_vl10c": "temp/zsbe_data_vl10c.xlsx",
+        "mb52_vl10d": "temp/mb52_vl10d.xlsx",
+        "mb52_vl10c": "temp/mb52_vl10c.xlsx",
     }
 
     paths = {key: BASE_PATH / filename for key, filename in file_paths.items()}
@@ -96,8 +99,10 @@ if __name__ == "__main__":
         # delete files
         delete_file(paths["vl10d_raw_data"])
         delete_file(paths["zsbe_data_vl10d"])
+        delete_file(paths["mb52_vl10d"])
         delete_file(paths["vl10c_raw_data"])
         delete_file(paths["zsbe_data_vl10c"])
+        delete_file(paths["mb52_vl10c"])
 
         # TODO: export vl10d_all_items.xls from VL10D transaction
         vl10d_vl10c_load_variant_and_export_data(
@@ -149,6 +154,34 @@ if __name__ == "__main__":
 
         # Add header column
         vl10d_merged_df['header'] = vl10d_merged_df['document_number'] + " " + vl10d_merged_df['goods_recepient_number'].apply(lambda x: goods_recepients_map[x])
+
+        # ---------------------------------------------------
+        # TODO: Add this to VL10C part
+        # TODO: match quantities to storage locations
+        # create columns
+        for loc in ['0004', '0005', '0007', '0003', '0750']:
+            vl10d_merged_df[f'loc_{loc}'] = 0
+        vl10d_merged_df['delete'] = False
+        # vl10d_merged_df.to_pickle('excel_files/vl10d_merged_df.pkl')
+        # copy SAP numbers to clipboard
+        copy_df_column_to_clipboard(vl10d_merged_df, "SAP_nr")
+        # open MB52 transaction
+        open_one_transaction(session=sess1, transaction_name="MB52")
+        simple_load_variant(sess1, "MISC_LU_PPS001", True)
+        mb52_load_sap_numbers_and_export_data(session=sess1, file_path=str(paths['temp_folder']), file_name=paths['mb52_vl10d'].name)
+        # close Excel file which should be automatically opened
+        time.sleep(3)
+        close_excel_file(file_name=paths['mb52_vl10d'].name)
+        # load zsbe data into data frame
+        mb52_df = pd.read_excel(paths['mb52_vl10d'], dtype={'Skład': str, 'Materiał': str})
+        mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
+                       inplace=True)
+        # mb52_df.to_pickle('excel_files/mb52_df.pkl')
+        filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10d_merged_df)
+
+
+        # TODO: Add this to VL10C part
+        # ---------------------------------------------------
 
         # save vl10d_merged_df to Excel file
         vl10d_merged_df.to_excel(paths['vl10d_clean_data'], index=False)
@@ -222,6 +255,11 @@ if __name__ == "__main__":
         logging.error("Error occurred", exc_info=True)
 
     finally:
+        # close unnecessary files
+        close_excel_file(file_name=paths['zsbe_data_vl10c'].name)
+        time.sleep(0.1)
+        close_excel_file(file_name=paths['mb52_vl10d'].name)
+
         # Fill status file
         end_time = datetime.now().strftime("%H:%M:%S")
         program_status["start_time"] = start_time

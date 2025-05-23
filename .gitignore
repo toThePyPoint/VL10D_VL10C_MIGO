@@ -162,7 +162,7 @@ cython_debug/
 #.idea/
 
 .idea
-test.py
+helper_program_functions.py
 data/
 notebook.ipynb
 excel_files/
