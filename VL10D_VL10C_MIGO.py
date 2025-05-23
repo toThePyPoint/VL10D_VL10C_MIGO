@@ -159,6 +159,7 @@ if __name__ == "__main__":
         # TODO: Add this to VL10C part
         # TODO: match quantities to storage locations
         # create columns
+        vl10d_merged_df['header_suffix'] = ""
         for loc in ['0004', '0005', '0007', '0003', '0750']:
             vl10d_merged_df[f'loc_{loc}'] = 0
         vl10d_merged_df['delete'] = False
@@ -176,9 +177,6 @@ if __name__ == "__main__":
         mb52_df = pd.read_excel(paths['mb52_vl10d'], dtype={'Skład': str, 'Materiał': str})
         mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
                        inplace=True)
-        # get doc_num and doc_pos
-        mb52_df['document_number'] = mb52_df['Numer zapasu specjalnego'].apply(lambda x: x.split('/')[0])
-        mb52_df['doc_position'] = mb52_df['Numer zapasu specjalnego'].apply(lambda x: x.split('/')[1].strip())
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
         filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10d_merged_df)
         fill_storage_location_quantities(mb52_df, vl10d_merged_df)
@@ -245,6 +243,31 @@ if __name__ == "__main__":
         # Add header column
         vl10c_merged_df['header'] = vl10c_merged_df['document_number'] + " " + vl10c_merged_df['sales_office'].apply(lambda x: sales_offices_map[x])
 
+        # TODO: match quantities to storage locations
+        # create columns
+        vl10c_merged_df['header_suffix'] = ""
+        for loc in ['0004', '0005', '0007', '0003', '0750']:
+            vl10c_merged_df[f'loc_{loc}'] = 0
+        vl10c_merged_df['delete'] = False
+        # vl10c_merged_df.to_pickle('excel_files/vl10c_merged_df.pkl')
+        # copy SAP numbers to clipboard
+        copy_df_column_to_clipboard(vl10c_merged_df, "SAP_nr")
+        # open MB52 transaction
+        open_one_transaction(session=sess1, transaction_name="MB52")
+        simple_load_variant(sess1, "MISC_LU_PPS001", True)
+        mb52_load_sap_numbers_and_export_data(session=sess1, file_path=str(paths['temp_folder']),
+                                              file_name=paths['mb52_vl10c'].name)
+        # close Excel file which should be automatically opened
+        time.sleep(3)
+        close_excel_file(file_name=paths['mb52_vl10c'].name)
+        # load zsbe data into data frame
+        mb52_df = pd.read_excel(paths['mb52_vl10c'], dtype={'Skład': str, 'Materiał': str})
+        mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
+                       inplace=True)
+        # mb52_df.to_pickle('excel_files/mb52_df.pkl')
+        filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10c_merged_df)
+        fill_storage_location_quantities(mb52_df, vl10c_merged_df)
+
         # save vl10c_merged_df to Excel file
         vl10c_merged_df.to_excel(paths['vl10c_clean_data'], index=False)
         # open Excel file
@@ -261,7 +284,11 @@ if __name__ == "__main__":
         # close unnecessary files
         close_excel_file(file_name=paths['zsbe_data_vl10c'].name)
         time.sleep(0.1)
+        close_excel_file(file_name=paths['mb52_vl10c'].name)
+        time.sleep(0.1)
         close_excel_file(file_name=paths['mb52_vl10d'].name)
+        time.sleep(0.1)
+        close_excel_file(file_name=paths['zsbe_data_vl10d'].name)
 
         # Fill status file
         end_time = datetime.now().strftime("%H:%M:%S")
