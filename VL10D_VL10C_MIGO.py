@@ -14,7 +14,7 @@ from other_functions import append_status_to_excel, delete_file, vl10d_process_d
     run_excel_file_and_adjust_col_width, copy_df_column_to_clipboard, close_excel_file
 from sap_transactions import vl10d_vl10c_load_variant_and_export_data, mb52_load_sap_numbers_and_export_data
 from sap_functions import open_one_transaction, zsbe_load_and_export_data, simple_load_variant
-from helper_program_functions import filter_out_items_booked_to_0004_spec_cust_requirement_location
+from helper_program_functions import filter_out_items_booked_to_0004_spec_cust_requirement_location, fill_storage_location_quantities
 
 BASE_PATH = Path(
     r"P:\Technisch\PLANY PRODUKCJI\PLANIŚCI\PP_TOOLS_TEMP_FILES\05_VL10D_VL10C_MIGO"
@@ -176,9 +176,12 @@ if __name__ == "__main__":
         mb52_df = pd.read_excel(paths['mb52_vl10d'], dtype={'Skład': str, 'Materiał': str})
         mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
                        inplace=True)
+        # get doc_num and doc_pos
+        mb52_df['document_number'] = mb52_df['Numer zapasu specjalnego'].apply(lambda x: x.split('/')[0])
+        mb52_df['doc_position'] = mb52_df['Numer zapasu specjalnego'].apply(lambda x: x.split('/')[1].strip())
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
         filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10d_merged_df)
-
+        fill_storage_location_quantities(mb52_df, vl10d_merged_df)
 
         # TODO: Add this to VL10C part
         # ---------------------------------------------------
