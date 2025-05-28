@@ -15,13 +15,20 @@ from other_functions import append_status_to_excel, delete_file, vl10d_process_d
 from sap_transactions import vl10d_vl10c_load_variant_and_export_data, mb52_load_sap_numbers_and_export_data
 from sap_functions import open_one_transaction, zsbe_load_and_export_data, simple_load_variant
 from helper_program_functions import filter_out_items_booked_to_0004_spec_cust_requirement_location, fill_storage_location_quantities
+from program_paths import ProgramPaths
 
-BASE_PATH = Path(
-    r"P:\Technisch\PLANY PRODUKCJI\PLANIŚCI\PP_TOOLS_TEMP_FILES\05_VL10D_VL10C_MIGO"
-)
-ERROR_LOG_PATH = BASE_PATH / "error.log"
+
+paths_instance = ProgramPaths()
+# BASE_PATH = Path(
+#     r"P:\Technisch\PLANY PRODUKCJI\PLANIŚCI\PP_TOOLS_TEMP_FILES\05_VL10D_VL10C_MIGO"
+# )
+# ERROR_LOG_PATH = BASE_PATH / "error.log"
 VL10D_VARIANT_NAME = "SHIP_LU_PPS002"
 VL10C_VARIANT_NAME = "SHIP_LU_PPS001"
+
+BASE_PATH = paths_instance.BASE_PATH
+ERROR_LOG_PATH = paths_instance.ERROR_LOG_PATH
+
 
 if __name__ == "__main__":
     username = os.getlogin()
@@ -62,20 +69,7 @@ if __name__ == "__main__":
         "101203": "1201"
     }
 
-    file_paths = {
-        "vl10d_raw_data": f"temp/vl10d_raw_data.xls",
-        "vl10d_clean_data": f"historical_data/vl10d_clean_data_{today}.xlsx",
-        "vl10c_raw_data": f"temp/vl10c_raw_data.xls",
-        "vl10c_clean_data": f"historical_data/vl10c_clean_data_{today}.xlsx",
-        "historical_data": "historical_data",
-        "temp_folder": "temp",
-        "zsbe_data_vl10d": "temp/zsbe_data_vl10d.xlsx",
-        "zsbe_data_vl10c": "temp/zsbe_data_vl10c.xlsx",
-        "mb52_vl10d": "temp/mb52_vl10d.xlsx",
-        "mb52_vl10c": "temp/mb52_vl10c.xlsx",
-    }
-
-    paths = {key: BASE_PATH / filename for key, filename in file_paths.items()}
+    paths = paths_instance.paths
 
     program_status = dict()
 
@@ -246,7 +240,7 @@ if __name__ == "__main__":
         # TODO: match quantities to storage locations
         # create columns
         vl10c_merged_df['header_suffix'] = ""
-        for loc in ['0004', '0005', '0007', '0003', '0750']:
+        for loc in ['0004', '0005', '0007', '0003', '0024', '0010', '0750', '0021']:
             vl10c_merged_df[f'loc_{loc}'] = 0
         vl10c_merged_df['delete'] = False
         # vl10c_merged_df.to_pickle('excel_files/vl10c_merged_df.pkl')
