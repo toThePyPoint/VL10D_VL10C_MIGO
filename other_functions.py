@@ -370,10 +370,8 @@ def vl10d_process_data(file_name_raw_data):
     df_filtered = df_filtered[~df_filtered['SAP_nr'].str.startswith(tuple(strings_to_filter_out_4))]
     df_filtered = df_filtered[~df_filtered['product_name'].isin(strings_to_filter_out_5)]
 
-    # Now, df_filtered contains only the rows where the 'product_name' column
-    # does NOT start with items in strings_to_filter
+    df_filtered.insert(loc=2, column='is_booking_req', value='n')
 
-    # df_filtered.to_excel(file_name_cleaned_data, index=False)
     return df_filtered
 
 

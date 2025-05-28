@@ -69,6 +69,8 @@ if __name__ == "__main__":
         "101203": "1201"
     }
 
+    storage_locations_list = ['0004', '0005', '0007', '0003', '0024', '0010', '0750', '0021']
+
     paths = paths_instance.paths
 
     program_status = dict()
@@ -154,9 +156,9 @@ if __name__ == "__main__":
         # TODO: match quantities to storage locations
         # create columns
         vl10d_merged_df['header_suffix'] = ""
-        for loc in ['0004', '0005', '0007', '0003', '0750']:
+        for loc in storage_locations_list:
             vl10d_merged_df[f'loc_{loc}'] = 0
-        vl10d_merged_df['delete'] = False
+        # vl10d_merged_df['delete'] = False
         # vl10d_merged_df.to_pickle('excel_files/vl10d_merged_df.pkl')
         # copy SAP numbers to clipboard
         copy_df_column_to_clipboard(vl10d_merged_df, "SAP_nr")
@@ -240,9 +242,8 @@ if __name__ == "__main__":
         # TODO: match quantities to storage locations
         # create columns
         vl10c_merged_df['header_suffix'] = ""
-        for loc in ['0004', '0005', '0007', '0003', '0024', '0010', '0750', '0021']:
+        for loc in storage_locations_list:
             vl10c_merged_df[f'loc_{loc}'] = 0
-        vl10c_merged_df['delete'] = False
         # vl10c_merged_df.to_pickle('excel_files/vl10c_merged_df.pkl')
         # copy SAP numbers to clipboard
         copy_df_column_to_clipboard(vl10c_merged_df, "SAP_nr")

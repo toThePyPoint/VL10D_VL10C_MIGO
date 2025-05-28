@@ -53,6 +53,10 @@ if __name__ == "__main__":
     try:
         sess1, tr1, nu1 = get_last_session(max_num_of_sessions=6)
 
+        # TODO: get data from VL10D file
+        vl10d_df = pd.read_excel(paths['vl10d_clean_data'])
+
+
         # Handle the information for status file
         # program_status["COHV_CONVERSION_SYSTEM_MESSAGE"] = result_sap_messages
 
