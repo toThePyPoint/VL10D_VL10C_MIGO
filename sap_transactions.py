@@ -4,6 +4,7 @@ import time
 import pyperclip
 import pywintypes
 from sap_functions import clear_sap_warnings, get_sap_message, vl10d_vl10c_select_layout
+from gui_manager import show_message
 
 
 def pk03_get_container_data(mat_nr, plant, prod_supply_area, session):
@@ -778,7 +779,8 @@ def me57_convert_purchase_requisitions(session, skip_stock_requisitions=True):
         index_offset = 0
 
         for index in range(visible_rows):
-            account_assignment_category_id = str.replace(account_assignment_category_id, f"[2,{index - 1 - index_offset}]",
+            account_assignment_category_id = str.replace(account_assignment_category_id,
+                                                         f"[2,{index - 1 - index_offset}]",
                                                          f"[2,{index - index_offset}]")
             matnr_id = str.replace(matnr_id, f"[4,{index - 1 - index_offset}]", f"[4,{index - index_offset}]")
 
@@ -812,7 +814,8 @@ def me57_convert_purchase_requisitions(session, skip_stock_requisitions=True):
 
         if do_deletion:
             # Delete selected rows
-            session.findById("wnd[0]/usr/subSUB0:SAPLMEGUI:0015/subSUB2:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1211/btnDELETE").press()
+            session.findById(
+                "wnd[0]/usr/subSUB0:SAPLMEGUI:0015/subSUB2:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1211/btnDELETE").press()
             session.findById("wnd[1]/usr/btnSPOP-OPTION1").press()
 
     # Save purchase order
@@ -930,7 +933,8 @@ def vl10d_vl10c_load_variant_and_export_data(session, file_path, file_name, tran
     vl10d_vl10c_select_layout(session, "/ASHIP_PPS01")
     session.findById("wnd[0]/mbar/menu[0]/menu[1]/menu[2]").select()
     session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").select()
-    session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").setFocus()
+    session.findById(
+        "wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").setFocus()
     session.findById("wnd[1]/tbar[0]/btn[0]").press()
     session.findById("wnd[1]/usr/ctxtDY_PATH").text = file_path
     session.findById("wnd[1]").sendVKey(4)
@@ -954,3 +958,171 @@ def mb52_load_sap_numbers_and_export_data(session, file_path, file_name):
     session.findById("wnd[1]/usr/ctxtDY_PATH").text = file_path
     session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = file_name
     session.findById("wnd[1]/tbar[0]/btn[0]").press()
+
+
+def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc_header, quantity, plant, movement_type, is_multiple,
+                                        is_last, is_first, quantities, mb52_doc_nums, to_numbers):
+    """
+    :param session:
+    :param mat_nr:
+    :param source_storage_loc:
+    :param doc_header:
+    :param quantity:
+    :param plant:
+    :param movement_type:
+    :param is_multiple: if there are more positions than one
+    :param is_last: if its last position - if there is only one position it's True
+    :param is_first: if its first position - if there is only one position it's True
+    :param quantities: list of quantities for each position
+    :param mb52_doc_nums: output list for material docs
+    :param to_numbers: output list for transfer orders numbers
+    :return:
+    """
+    if is_first:
+        session.findById("wnd[0]/tbar[0]/okcd").text = "/nmigo"
+        session.findById("wnd[0]").sendVKey(0)
+
+        # session.findById("wnd[0]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:0003/subSUB_FIRSTLINE:SAPLMIGO:0010/cmbGODYNPRO-ACTION").key = "A08"
+        field_id = partial_matching(session, r"cmbGODYNPRO-ACTION")
+        if field_id:
+            session.findById(field_id).key = "A08"
+        else:
+            print('Booking Type field missing!')
+            return
+
+        field_id = partial_matching(session, r"cmbGODYNPRO-REFDOC")
+        if field_id:
+            session.findById(field_id).key = "R10"
+        else:
+            print('Booking Type field missing!')
+            return
+
+        # Set movement type
+        field_id = partial_matching(session, r"ctxtGODEFAULT_TV-BWART")
+        if field_id:
+            session.findById(field_id).text = str(movement_type)
+        else:
+            print('Booking Type field missing!')
+            return
+
+        # Press the Enter key
+        session.findById("wnd[0]").sendVKey(0)
+
+        # Click the "Item Details" button
+        item_detail_btn_id = None
+        try:
+            item_detail_btn_id = partial_matching(session, r"btnBUTTON_DETAIL")
+        except Exception as e:
+            print(e)
+        if item_detail_btn_id:
+            session.findById(item_detail_btn_id).press()
+        else:
+            print("Item details button not found!")
+
+        # session.findById("wnd[0]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:0007/subSUB_HEADER:SAPLMIGO:0101/subSUB_HEADER:SAPLMIGO:0100/tabsTS_GOHEAD/tabpOK_GOHEAD_GENERAL/ssubSUB_TS_GOHEAD_GENERAL:SAPLMIGO:0112/txtGOHEAD-BKTXT").text = str(doc_header)
+        # Set the Document Header text field
+        document_header_id = partial_matching(session, r"txtGOHEAD-BKTXT")
+        if document_header_id:
+            session.findById(document_header_id).text = str(doc_header)
+        else:
+            print("Document header text field not found!")
+            return
+
+    # session.findById("wnd[0]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:0007/subSUB_ITEMDETAIL:SAPLMIGO:0303/subSUB_DETAIL:SAPLMIGO:0305/tabsTS_GOITEM/tabpOK_GOITEM_TRANS/ssubSUB_TS_GOITEM_TRANS:SAPLMIGO:0390/ctxtGODYNPRO-MAKTX").text = "333911"
+    # Set the Material Number field
+    material_number_id = partial_matching(session, r"ctxtGODYNPRO-MAKTX")
+    if material_number_id:
+        session.findById(material_number_id).text = str(mat_nr)
+    else:
+        print("Material number field not found!")
+        return
+
+    # Set the Plant field
+    plant_field_id = partial_matching(
+        session,
+        r"ctxtGODYNPRO-NAME1",
+        r"wnd\[0\]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:\d+/subSUB_ITEMDETAIL:SAPLMIGO:\d+/subSUB_DETAIL:SAPLMIGO:\d+"
+    )
+    if plant_field_id:
+        session.findById(plant_field_id).text = str(plant)
+    else:
+        print("Plant field not found!")
+        return
+
+    # Set the source storage Location field
+    storage_loc_id = partial_matching(
+        session,
+        r"ctxtGODYNPRO-LGOBE",
+        r"wnd\[0\]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:\d+/subSUB_ITEMDETAIL:SAPLMIGO:\d+/subSUB_DETAIL:SAPLMIGO:\d+"
+    )
+    if storage_loc_id:
+        session.findById(storage_loc_id).text = str(source_storage_loc)
+    else:
+        print("Storage location field not found!")
+        return
+
+    # Set the target storage Location field
+    storage_loc_id = partial_matching(
+        session,
+        r"ctxtGOITEM-UMLGOBE",
+        r"wnd\[0\]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:\d+/subSUB_ITEMDETAIL:SAPLMIGO:\d+/subSUB_DETAIL:SAPLMIGO:\d+"
+    )
+    if storage_loc_id:
+        session.findById(storage_loc_id).text = "0004"
+    else:
+        print("Storage location field not found!")
+        return
+
+    # Set the quantity
+    quantity_field_id = partial_matching(
+        session,
+        r"txtGODYNPRO-ERFMG",
+        r"wnd\[0\]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:\d+/subSUB_ITEMDETAIL:SAPLMIGO:\d+/subSUB_DETAIL:SAPLMIGO:\d+"
+    )
+    if quantity_field_id:
+        print(f"Found Quantity Field ID: {quantity_field_id}")
+        session.findById(quantity_field_id).text = str(quantity)
+    else:
+        print("Quantity field not found!")
+        return
+
+    # Press the Enter key
+    session.findById("wnd[0]").sendVKey(0)
+
+    if is_multiple and not is_last:
+        # Click the "Next Item" button
+        next_item_btn_id = partial_matching(session, r"btnOK_NEXT_ITEM")
+        if next_item_btn_id:
+            session.findById(next_item_btn_id).press()
+        else:
+            print("Next item button not found!")
+            return
+
+    if is_last:
+        # check and save
+        session.findById("wnd[0]/tbar[1]/btn[7]").press()  # validate
+        session.findById("wnd[0]/tbar[1]/btn[23]").press()  # save
+
+        # LT06 transaction
+        session.findById("wnd[0]/usr/cmbRL02B-DUNKL").key = "H"
+        mb52_doc_nums.append(session.findById("wnd[0]/usr/txtRL02B-MBLNR").text)
+        session.findById("wnd[0]").sendVKey(0)
+
+        # LT04 transaction
+        session.findById("wnd[0]/tbar[1]/btn[18]").press()
+        for q in quantities:
+            time.sleep(0.1)
+            session.findById(
+                "wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtRL03T-SELMG[0,0]").text = str(
+                q)
+            show_message("Sprawdź mniejsca WM i potwierdź 'OK' aby przejść dalej.")
+            session.findById("wnd[0]/tbar[1]/btn[16]").press()
+
+        session.findById("wnd[0]/tbar[0]/btn[11]").press()
+        sap_msg = get_sap_message(session)
+
+        to_pattern = r"\b\d{10}\b"  # transfer order pattern
+        match = re.search(to_pattern, sap_msg)
+        if match:
+            to_number = match.group()
+            to_numbers.append(to_number)
