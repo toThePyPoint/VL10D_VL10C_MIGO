@@ -156,7 +156,6 @@ if __name__ == "__main__":
         # TODO: match quantities to storage locations
         # create columns
         vl10d_merged_df['header_suffix'] = ""
-        vl10d_merged_df['source_loc'] = vl10d_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
         for loc in storage_locations_list:
             vl10d_merged_df[f'loc_{loc}'] = 0
         # vl10d_merged_df['delete'] = False
@@ -177,6 +176,7 @@ if __name__ == "__main__":
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
         filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10d_merged_df)
         fill_storage_location_quantities(mb52_df, vl10d_merged_df)
+        vl10d_merged_df['source_loc'] = vl10d_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
 
         # TODO: Add this to VL10C part
         # ---------------------------------------------------
@@ -243,7 +243,6 @@ if __name__ == "__main__":
         # TODO: match quantities to storage locations
         # create columns
         vl10c_merged_df['header_suffix'] = ""
-        vl10d_merged_df['source_loc'] = vl10d_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
         for loc in storage_locations_list:
             vl10c_merged_df[f'loc_{loc}'] = 0
         # vl10c_merged_df.to_pickle('excel_files/vl10c_merged_df.pkl')
@@ -264,6 +263,7 @@ if __name__ == "__main__":
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
         filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10c_merged_df)
         fill_storage_location_quantities(mb52_df, vl10c_merged_df)
+        vl10c_merged_df['source_loc'] = vl10c_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
 
         # save vl10c_merged_df to Excel file
         vl10c_merged_df.to_excel(paths['vl10c_clean_data'], index=False)

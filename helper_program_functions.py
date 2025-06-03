@@ -50,6 +50,6 @@ def fill_storage_location_quantities(mb52_df, vl10x_merged_df):
 def get_source_storage_location(row, quantity):
     storage_locs = ['loc_0003', 'loc_0007']
     for loc in storage_locs:
-        if int(row[loc]) >= int(quantity):
+        if int(row[loc]) >= int(str(quantity).strip().replace('.', '')):
             return loc[-4:]  # Return the last 4 characters of the location name
     return None
