@@ -961,8 +961,9 @@ def mb52_load_sap_numbers_and_export_data(session, file_path, file_name):
 
 
 def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc_header, quantity, plant, movement_type, is_multiple,
-                                        is_last, is_first, quantities, mb52_doc_nums, to_numbers):
+                                        is_last, is_first, quantities, mb52_doc_nums, to_numbers, fill_describtion=False):
     """
+    :param fill_describtion: if describtion in booking_tab should be added
     :param session:
     :param mat_nr:
     :param source_storage_loc:
@@ -1022,7 +1023,6 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
         else:
             print("Item details button not found!")
 
-        # session.findById("wnd[0]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:0007/subSUB_HEADER:SAPLMIGO:0101/subSUB_HEADER:SAPLMIGO:0100/tabsTS_GOHEAD/tabpOK_GOHEAD_GENERAL/ssubSUB_TS_GOHEAD_GENERAL:SAPLMIGO:0112/txtGOHEAD-BKTXT").text = str(doc_header)
         # Set the Document Header text field
         document_header_id = partial_matching(session, r"txtGOHEAD-BKTXT")
         if document_header_id:
@@ -1031,7 +1031,6 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
             print("Document header text field not found!")
             return
 
-    # session.findById("wnd[0]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:0007/subSUB_ITEMDETAIL:SAPLMIGO:0303/subSUB_DETAIL:SAPLMIGO:0305/tabsTS_GOITEM/tabpOK_GOITEM_TRANS/ssubSUB_TS_GOITEM_TRANS:SAPLMIGO:0390/ctxtGODYNPRO-MAKTX").text = "333911"
     # Set the Material Number field
     material_number_id = partial_matching(session, r"ctxtGODYNPRO-MAKTX")
     if material_number_id:
@@ -1065,16 +1064,17 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
         return
 
     # Set the target storage Location field
-    storage_loc_id = partial_matching(
-        session,
-        r"ctxtGOITEM-UMLGOBE",
-        r"wnd\[0\]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:\d+/subSUB_ITEMDETAIL:SAPLMIGO:\d+/subSUB_DETAIL:SAPLMIGO:\d+"
-    )
-    if storage_loc_id:
-        session.findById(storage_loc_id).text = "0004"
-    else:
-        print("Storage location field not found!")
-        return
+    if movement_type != "315":
+        storage_loc_id = partial_matching(
+            session,
+            r"ctxtGOITEM-UMLGOBE",
+            r"wnd\[0\]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:\d+/subSUB_ITEMDETAIL:SAPLMIGO:\d+/subSUB_DETAIL:SAPLMIGO:\d+"
+        )
+        if storage_loc_id:
+            session.findById(storage_loc_id).text = "0004"
+        else:
+            print("Storage location field not found!")
+            return
 
     # Set the quantity
     quantity_field_id = partial_matching(
@@ -1088,6 +1088,35 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
     else:
         print("Quantity field not found!")
         return
+
+    if fill_describtion:
+        # Select the "Mat. Movement" tab
+        dest_tab_id = partial_matching(session, r"tabpOK_GOITEM_DESTINAT.")
+        if dest_tab_id:
+            session.findById(dest_tab_id).select()
+        else:
+            print("Mat. Movement tab not found!")
+            return
+
+        # Set the description field
+        document_header_id = partial_matching(
+            session,
+            r"txtGOITEM-SGTXT",
+            r"wnd\[0\]/usr/ssubSUB_MAIN_CARRIER:SAPLMIGO:\d+/subSUB_ITEMDETAIL:SAPLMIGO:\d+/subSUB_DETAIL:SAPLMIGO:\d+"
+        )
+        if document_header_id:
+            session.findById(document_header_id).text = doc_header
+        else:
+            print("Document header field not found!")
+            return
+
+        # Select the "Booking" tab back again
+        booking_tab_id = partial_matching(session, r"tabpOK_GOITEM_TRANS")
+        if booking_tab_id:
+            session.findById(booking_tab_id).select()
+        else:
+            print("Booking tab not found!")
+            return
 
     # Press the Enter key
     session.findById("wnd[0]").sendVKey(0)

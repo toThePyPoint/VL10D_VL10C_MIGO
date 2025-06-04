@@ -19,7 +19,7 @@ BASE_PATH = paths_instance.BASE_PATH
 ERROR_LOG_PATH = paths_instance.ERROR_LOG_PATH
 
 
-def migo_booking(data_file, session, plant="2101", movement_type="313"):
+def migo_booking(data_file, session, plant="2101", movement_type="313", is_describtion=False):
     vl_10x_df = pd.read_excel(data_file, dtype={"source_loc": str})
     vl_10x_df = vl_10x_df[
         (vl_10x_df["is_booking_req"] == "t") & (vl_10x_df["source_loc"].notna())
@@ -35,9 +35,12 @@ def migo_booking(data_file, session, plant="2101", movement_type="313"):
             header = row["header"] + " " + row["header_suffix"]
             sap_nr = row["SAP_nr"]
             quantity = row["quantity"]
-            storage_loc = row["source_loc"] if pd.notna(row["source_loc"]) else None
-            # TODO: Handle missing storage location
-            # TODO: MIGO booking with one position
+            if movement_type == "315":
+                storage_loc = "0004"
+            else:
+                storage_loc = row["source_loc"] if pd.notna(row["source_loc"]) else None
+            # Handle missing storage location
+            # MIGO booking with one position
             migo_lt06_lt04_booking_and_transfer(
                 session=session,
                 mat_nr=sap_nr,
@@ -52,6 +55,7 @@ def migo_booking(data_file, session, plant="2101", movement_type="313"):
                 quantities=temp_doc_quantities,
                 mb52_doc_nums=mb52_doc_nums,
                 to_numbers=to_numbers,
+                fill_describtion=is_describtion
             )
             print("Booking one position")
             print(
@@ -87,6 +91,7 @@ def migo_booking(data_file, session, plant="2101", movement_type="313"):
                     quantities=temp_doc_quantities,
                     mb52_doc_nums=mb52_doc_nums,
                     to_numbers=to_numbers,
+                    fill_describtion=is_describtion
                 )
                 is_first = False
 
@@ -135,6 +140,7 @@ if __name__ == "__main__":
         # vl10x_files_paths = ["vl10d_clean_data"]
         for vl10x_file_path in vl10x_files_paths:
             migo_booking(paths[vl10x_file_path], sess1)
+            migo_booking(paths[vl10x_file_path], sess1, movement_type="315", is_describtion=True)
 
         temp_df = pd.DataFrame({"mb52_mat_docs_nums": mb52_doc_nums})
         temp_df.to_excel(paths["mb52_mat_docs_nums"])
