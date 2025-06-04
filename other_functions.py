@@ -378,6 +378,10 @@ def vl10d_process_data(file_name_raw_data):
     df_filtered['goods_issue_date'] = pd.to_datetime(df_filtered['goods_issue_date'], format='%d.%m.%Y')
     df_sorted = df_filtered.sort_values(by='goods_issue_date', ascending=True)
 
+    # ensure correct quantity data types
+    df_sorted['quantity'] = df_sorted['quantity'].apply(lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))
+    df_sorted['stock'] = df_sorted['stock'].apply(lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))
+
     return df_sorted
 
 

@@ -1114,10 +1114,28 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
 
             # LT04 transaction
             session.findById("wnd[0]/tbar[1]/btn[18]").press()
+
+            # select row with quantity greater or equal the quantity in the order
+            lt04_table_control = session.findById(
+                "wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061")
+
+            # Get the number of rows
+            lt04_row_count = lt04_table_control.VerticalScrollbar.Maximum
+
             for q in quantities:
+
+                lt_04_row_num = None
+                for i in range(lt04_row_count):
+                    if float(session.findById(f"wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtLQUA-VERME[4,{i}]").text) >= float(q):
+                        lt_04_row_num = i
+                        break
+
+                if not lt_04_row_num:
+                    lt_04_row_num = 0
+
                 time.sleep(0.1)
                 session.findById(
-                    "wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtRL03T-SELMG[0,0]").text = str(
+                    f"wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtRL03T-SELMG[0,{lt_04_row_num}]").text = str(
                     q)
                 show_message("Sprawdź mniejsca WM i potwierdź 'OK' aby przejść dalej.")
                 session.findById("wnd[0]/tbar[1]/btn[16]").press()

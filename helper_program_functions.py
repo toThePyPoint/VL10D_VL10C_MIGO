@@ -16,8 +16,9 @@ def filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10
     mb52_df_copy.rename(columns={'stock': 'quantity'}, inplace=True)
 
     # set appropriate data types
-    vl10x_merged_df['quantity'] = pd.to_numeric(vl10x_merged_df['quantity'], errors='coerce').round().astype('Int64')
-    mb52_df_copy['quantity'] = pd.to_numeric(mb52_df_copy['quantity'], errors='coerce').round().astype('Int64')
+    mb52_df_copy['quantity'] = mb52_df_copy['quantity'].apply(lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))
+    vl10x_merged_df['quantity'] = pd.to_numeric(vl10x_merged_df['quantity'], errors='coerce').round().astype('float')
+    mb52_df_copy['quantity'] = pd.to_numeric(mb52_df_copy['quantity'], errors='coerce').round().astype('float')
 
     # Perform an inner merge to find matching rows
     matching_rows = pd.merge(
@@ -39,7 +40,7 @@ def fill_storage_location_quantities(mb52_df, vl10x_merged_df):
     mb52_df = mb52_df[mb52_df['Numer zapasu specjalnego'].isnull()]
 
     for row in mb52_df.iterrows():
-        stock = row[1]['stock']
+        stock = str(row[1]['stock']).strip().replace('.', '').replace(',', '.')
         sap_nr = row[1]['SAP_nr']
         storage_loc = row[1]['storage_loc']
         vl10x_merged_df.loc[vl10x_merged_df['SAP_nr'] == sap_nr, f'loc_{storage_loc}'] = stock
@@ -50,6 +51,6 @@ def fill_storage_location_quantities(mb52_df, vl10x_merged_df):
 def get_source_storage_location(row, quantity):
     storage_locs = ['loc_0007', 'loc_0003', 'loc_0750', 'loc_0005']
     for loc in storage_locs:
-        if int(row[loc]) >= int(str(quantity).strip().replace('.', '')):
+        if float(row[loc]) >= float(str(quantity).strip()):
             return loc[-4:]  # Return the last 4 characters of the location name
     return None

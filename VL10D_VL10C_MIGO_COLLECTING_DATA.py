@@ -300,11 +300,11 @@ if __name__ == "__main__":
     finally:
         # close unnecessary files
         close_excel_file(file_name=paths['zsbe_data_vl10c'].name)
-        time.sleep(0.1)
+        time.sleep(1)
         close_excel_file(file_name=paths['mb52_vl10c'].name)
-        time.sleep(0.1)
+        time.sleep(1)
         close_excel_file(file_name=paths['mb52_vl10d'].name)
-        time.sleep(0.1)
+        time.sleep(1)
         close_excel_file(file_name=paths['zsbe_data_vl10d'].name)
 
         # Fill status file
