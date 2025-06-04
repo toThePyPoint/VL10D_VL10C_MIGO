@@ -978,6 +978,9 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
     :param to_numbers: output list for transfer orders numbers
     :return:
     """
+
+    lt04_lt06_storage_locs = ['0007'] # storage locs for which operations in lt04 and lt06 are made
+
     if is_first:
         session.findById("wnd[0]/tbar[0]/okcd").text = "/nmigo"
         session.findById("wnd[0]").sendVKey(0)
@@ -1103,29 +1106,30 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
         session.findById("wnd[0]/tbar[1]/btn[7]").press()  # validate
         session.findById("wnd[0]/tbar[1]/btn[23]").press()  # save
 
-        # LT06 transaction
-        session.findById("wnd[0]/usr/cmbRL02B-DUNKL").key = "H"
-        mb52_doc_nums.append(session.findById("wnd[0]/usr/txtRL02B-MBLNR").text)
-        session.findById("wnd[0]").sendVKey(0)
+        if str(source_storage_loc) in lt04_lt06_storage_locs:
+            # LT06 transaction
+            session.findById("wnd[0]/usr/cmbRL02B-DUNKL").key = "H"
+            mb52_doc_nums.append(session.findById("wnd[0]/usr/txtRL02B-MBLNR").text)
+            session.findById("wnd[0]").sendVKey(0)
 
-        # LT04 transaction
-        session.findById("wnd[0]/tbar[1]/btn[18]").press()
-        for q in quantities:
-            time.sleep(0.1)
-            session.findById(
-                "wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtRL03T-SELMG[0,0]").text = str(
-                q)
-            show_message("Sprawdź mniejsca WM i potwierdź 'OK' aby przejść dalej.")
-            session.findById("wnd[0]/tbar[1]/btn[16]").press()
+            # LT04 transaction
+            session.findById("wnd[0]/tbar[1]/btn[18]").press()
+            for q in quantities:
+                time.sleep(0.1)
+                session.findById(
+                    "wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtRL03T-SELMG[0,0]").text = str(
+                    q)
+                show_message("Sprawdź mniejsca WM i potwierdź 'OK' aby przejść dalej.")
+                session.findById("wnd[0]/tbar[1]/btn[16]").press()
 
-        session.findById("wnd[0]/tbar[0]/btn[11]").press()
-        sap_msg = get_sap_message(session)
+            session.findById("wnd[0]/tbar[0]/btn[11]").press()
+            sap_msg = get_sap_message(session)
 
-        to_pattern = r"\b\d{10}\b"  # transfer order pattern
-        match = re.search(to_pattern, sap_msg)
-        if match:
-            to_number = match.group()
-            to_numbers.append(to_number)
+            to_pattern = r"\b\d{10}\b"  # transfer order pattern
+            match = re.search(to_pattern, sap_msg)
+            if match:
+                to_number = match.group()
+                to_numbers.append(to_number)
 
 
 def mb02_printing(session, doc_num, year, quantity_of_printed_docs, printer="8489"):

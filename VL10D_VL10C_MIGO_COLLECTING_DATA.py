@@ -175,12 +175,18 @@ if __name__ == "__main__":
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
         filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10d_merged_df)
         fill_storage_location_quantities(mb52_df, vl10d_merged_df)
-        # create source_loc col and move it at fourth position in df
+        # create source_loc col
         vl10d_merged_df['source_loc'] = vl10d_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
-        cols = vl10d_merged_df.columns.tolist()
-        cols.remove('source_loc')
-        cols.insert(3, 'source_loc')
-        vl10d_merged_df = vl10d_merged_df[cols]
+        # sort headers
+        headers = [
+            "SAP_nr", "product_name", "quantity", "unit", "stock", "goods_issue_date",
+            "document_number", "doc_position", "is_booking_req", "header",
+            "header_suffix", "source_loc", "loc_0004", "author", "loc_0005",
+            "loc_0007", "loc_0003", "loc_0024", "loc_0010", "loc_0750", "loc_0021",
+            "sales_office", "goods_recepient_number", "mrp_controller",
+            "procurement_type", "goods_recepient_name"
+        ]
+        vl10d_merged_df = vl10d_merged_df[headers]
 
         # ---------------------------------------------------
 
@@ -266,12 +272,18 @@ if __name__ == "__main__":
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
         filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10c_merged_df)
         fill_storage_location_quantities(mb52_df, vl10c_merged_df)
-        # create source_loc col and move it at fourth position in df
+        # create source_loc col
         vl10c_merged_df['source_loc'] = vl10c_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
-        cols = vl10c_merged_df.columns.tolist()
-        cols.remove('source_loc')
-        cols.insert(3, 'source_loc')
-        vl10c_merged_df = vl10c_merged_df[cols]
+        # sort headers
+        headers = [
+            "SAP_nr", "product_name", "quantity", "unit", "stock", "goods_issue_date",
+            "document_number", "doc_position", "is_booking_req", "header",
+            "header_suffix", "source_loc", "loc_0004", "author", "loc_0005",
+            "loc_0007", "loc_0003", "loc_0024", "loc_0010", "loc_0750", "loc_0021",
+            "sales_office", "goods_recepient_number", "mrp_controller",
+            "procurement_type", "goods_recepient_name"
+        ]
+        vl10c_merged_df = vl10c_merged_df[headers]
 
         # save vl10c_merged_df to Excel file
         vl10c_merged_df.to_excel(paths['vl10c_clean_data'], index=False)
