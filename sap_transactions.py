@@ -1126,3 +1126,27 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
         if match:
             to_number = match.group()
             to_numbers.append(to_number)
+
+
+def mb02_printing(session, doc_num, year, quantity_of_printed_docs, printer="8489"):
+    session.findById("wnd[0]/tbar[0]/okcd").text = "/nmb02"
+    session.findById("wnd[0]").sendVKey(0)
+    session.findById("wnd[0]/usr/ctxtRM07M-MBLNR").text = str(doc_num)
+    session.findById("wnd[0]/usr/txtRM07M-MJAHR").text = str(year)
+    session.findById("wnd[0]").sendVKey(0)
+    session.findById("wnd[0]/usr/sub:SAPMM07M:0420/ctxtDM07M-VZBEW[0,79]").setFocus()
+    session.findById("wnd[0]/usr/sub:SAPMM07M:0420/ctxtDM07M-VZBEW[0,79]").caretPosition = 1
+    session.findById("wnd[0]").sendVKey(2)
+    session.findById("wnd[0]/tbar[1]/btn[14]").press()
+    session.findById("wnd[0]/usr/tblSAPDV70ATC_NAST3/ctxtDNAST-KSCHL[1,0]").text = "WA03"
+    session.findById("wnd[0]/usr/tblSAPDV70ATC_NAST3/ctxtNAST-SPRAS[6,0]").text = "PL"
+    session.findById("wnd[0]/usr/tblSAPDV70ATC_NAST3/ctxtNAST-SPRAS[6,0]").setFocus()
+    session.findById("wnd[0]/tbar[1]/btn[2]").press()
+    session.findById("wnd[0]/usr/chkNAST-DIMME").selected = True
+    session.findById("wnd[0]/usr/ctxtNAST-LDEST").text = printer
+    session.findById("wnd[0]/usr/txtNAST-ANZAL").text = str(quantity_of_printed_docs)
+    session.findById("wnd[0]/usr/txtNAST-ANZAL").setFocus()
+    session.findById("wnd[0]/tbar[0]/btn[3]").press()
+    session.findById("wnd[0]/tbar[0]/btn[11]").press()
+    session.findById("wnd[0]/tbar[0]/btn[11]").press()
+    
