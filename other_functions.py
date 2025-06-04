@@ -1,3 +1,5 @@
+import string
+
 import openpyxl
 import win32com.client
 import pandas as pd
@@ -372,7 +374,11 @@ def vl10d_process_data(file_name_raw_data):
 
     df_filtered.insert(loc=2, column='is_booking_req', value='n')
 
-    return df_filtered
+    # sort by goods issue date
+    df_filtered['goods_issue_date'] = pd.to_datetime(df_filtered['goods_issue_date'], format='%d.%m.%Y')
+    df_sorted = df_filtered.sort_values(by='goods_issue_date', ascending=True)
+
+    return df_sorted
 
 
 def run_excel_file_and_adjust_col_width(file_path):
@@ -397,7 +403,7 @@ def run_excel_file_and_adjust_col_width(file_path):
             sheet = workbook.active
 
             # Adjust column widths for columns A to J
-            for column_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O']:
+            for column_letter in string.ascii_uppercase:
                 max_length = 0
                 for cell in sheet[column_letter]:
                     try:
