@@ -17,8 +17,8 @@ def filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10
 
     # set appropriate data types
     mb52_df_copy['quantity'] = mb52_df_copy['quantity'].apply(lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))
-    vl10x_merged_df['quantity'] = pd.to_numeric(vl10x_merged_df['quantity'], errors='coerce').round().astype('float')
-    mb52_df_copy['quantity'] = pd.to_numeric(mb52_df_copy['quantity'], errors='coerce').round().astype('float')
+    vl10x_merged_df['quantity'] = pd.to_numeric(vl10x_merged_df['quantity'], errors='coerce').astype('float')
+    mb52_df_copy['quantity'] = pd.to_numeric(mb52_df_copy['quantity'], errors='coerce').astype('float')
 
     # Perform an inner merge to find matching rows
     matching_rows = pd.merge(
