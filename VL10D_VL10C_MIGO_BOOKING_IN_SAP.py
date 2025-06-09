@@ -19,7 +19,7 @@ BASE_PATH = paths_instance.BASE_PATH
 ERROR_LOG_PATH = paths_instance.ERROR_LOG_PATH
 
 
-def migo_booking(data_file, session, plant="2101", movement_type="313", is_describtion=False):
+def migo_booking(data_file, session, mb02_doc_nums, plant="2101", movement_type="313", is_describtion=False):
     vl_10x_df = pd.read_excel(data_file, dtype={"source_loc": str})
     vl_10x_df = vl_10x_df[
         (vl_10x_df["is_booking_req"] == "t") & (vl_10x_df["source_loc"].notna())
@@ -53,7 +53,7 @@ def migo_booking(data_file, session, plant="2101", movement_type="313", is_descr
                 is_last=True,
                 is_first=True,
                 quantities=temp_doc_quantities,
-                mb52_doc_nums=mb52_doc_nums,
+                mb02_doc_nums=mb02_doc_nums,
                 to_numbers=to_numbers,
                 fill_describtion=is_describtion
             )
@@ -89,7 +89,7 @@ def migo_booking(data_file, session, plant="2101", movement_type="313", is_descr
                     is_last=is_last,
                     is_first=is_first,
                     quantities=temp_doc_quantities,
-                    mb52_doc_nums=mb52_doc_nums,
+                    mb02_doc_nums=mb02_doc_nums,
                     to_numbers=to_numbers,
                     fill_describtion=is_describtion
                 )
@@ -99,6 +99,13 @@ def migo_booking(data_file, session, plant="2101", movement_type="313", is_descr
                 print(
                     f"Header: {header}, SAP Number: {sap_nr}, Quantity: {quantity}, Storage Location: {storage_loc}"
                 )
+
+        if movement_type == "313":
+            mb02_printing(session=sess1,
+                          doc_num=str(mb02_doc_nums_313[-1]),  # print the documents for last number in the list
+                          year=str(pd.Timestamp.now().year),
+                          quantity_of_printed_docs="2",
+                          )
 
 
 if __name__ == "__main__":
@@ -132,29 +139,32 @@ if __name__ == "__main__":
     try:
         sess1, tr1, nu1 = get_last_session(max_num_of_sessions=6)
 
-        mb52_doc_nums = []  # material documents
+        mb02_doc_nums_313 = []  # material documents
+        mb02_doc_nums_315 = []  # material documents
         to_numbers = []  # transfer orders numbers
 
         # TODO: get data from VL10D file
         vl10x_files_paths = ['vl10d_clean_data', 'vl10c_clean_data']
         # vl10x_files_paths = ["vl10d_clean_data"]
         for vl10x_file_path in vl10x_files_paths:
-            migo_booking(paths[vl10x_file_path], sess1)
-            migo_booking(paths[vl10x_file_path], sess1, movement_type="315", is_describtion=True)
+            migo_booking(paths[vl10x_file_path], sess1, mb02_doc_nums_313)
+            migo_booking(paths[vl10x_file_path], sess1, mb02_doc_nums_315, movement_type="315", is_describtion=True)
 
-        temp_df = pd.DataFrame({"mb52_mat_docs_nums": mb52_doc_nums})
-        temp_df.to_excel(paths["mb52_mat_docs_nums"])
+        temp_df = pd.DataFrame({"mb52_mat_docs_nums_313": mb02_doc_nums_313})
+        temp_df.to_excel(paths["mb52_mat_docs_nums_313"])
+        temp_df = pd.DataFrame({"mb52_mat_docs_nums_315": mb02_doc_nums_315})
+        temp_df.to_excel(paths["mb52_mat_docs_nums_315"])
 
         temp_df = pd.DataFrame({"to_numbers": to_numbers})
         temp_df.to_excel(paths["to_numbers"])
 
-        for mat_doc_num in mb52_doc_nums:
-            mb02_printing(
-                session=sess1,
-                doc_num=str(mat_doc_num),
-                year=str(pd.Timestamp.now().year),
-                quantity_of_printed_docs="2",
-            )
+        # for mat_doc_num in mb52_doc_nums:
+        #     mb02_printing(
+        #         session=sess1,
+        #         doc_num=str(mat_doc_num),
+        #         year=str(pd.Timestamp.now().year),
+        #         quantity_of_printed_docs="2",
+        #     )
 
         # Handle the information for status file
         # program_status["COHV_CONVERSION_SYSTEM_MESSAGE"] = result_sap_messages

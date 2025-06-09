@@ -375,8 +375,8 @@ def vl10d_process_data(file_name_raw_data):
     df_filtered.insert(loc=2, column='is_booking_req', value='n')
 
     # sort by goods issue date
-    df_filtered['goods_issue_date'] = pd.to_datetime(df_filtered['goods_issue_date'], format='%d.%m.%Y')
-    df_sorted = df_filtered.sort_values(by='goods_issue_date', ascending=True)
+    df_filtered['goods_issue_date'] = pd.to_datetime(df_filtered['goods_issue_date'], format='%d.%m.%Y').dt.date
+    df_sorted = df_filtered.sort_values(by=['goods_issue_date', 'document_number'], ascending=[True, True])
 
     # ensure correct quantity data types
     df_sorted['quantity'] = df_sorted['quantity'].apply(lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))

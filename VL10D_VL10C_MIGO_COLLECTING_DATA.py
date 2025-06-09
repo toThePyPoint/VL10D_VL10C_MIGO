@@ -139,7 +139,7 @@ if __name__ == "__main__":
         }
         vl10d_merged_df.rename(columns=new_col_names, inplace=True)
         # filter the data
-        vl10d_merged_df = vl10d_merged_df[~vl10d_merged_df['mrp_controller'].isin(["LS1", "LS2"])]
+        # vl10d_merged_df = vl10d_merged_df[~vl10d_merged_df['mrp_controller'].isin(["LS2"])]
         # remove rows where 'product_name' starts with 'EBR' or 'EDR' and 'procurement_type' == 'E'
         vl10d_merged_df = vl10d_merged_df[
             ~(

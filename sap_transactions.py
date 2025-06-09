@@ -961,7 +961,7 @@ def mb52_load_sap_numbers_and_export_data(session, file_path, file_name):
 
 
 def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc_header, quantity, plant, movement_type, is_multiple,
-                                        is_last, is_first, quantities, mb52_doc_nums, to_numbers, fill_describtion=False):
+                                        is_last, is_first, quantities, mb02_doc_nums, to_numbers, fill_describtion=False):
     """
     :param fill_describtion: if describtion in booking_tab should be added
     :param session:
@@ -975,7 +975,7 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
     :param is_last: if its last position - if there is only one position it's True
     :param is_first: if its first position - if there is only one position it's True
     :param quantities: list of quantities for each position
-    :param mb52_doc_nums: output list for material docs
+    :param mb02_doc_nums: output list for material docs
     :param to_numbers: output list for transfer orders numbers
     :return:
     """
@@ -1084,7 +1084,7 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
     )
     if quantity_field_id:
         print(f"Found Quantity Field ID: {quantity_field_id}")
-        session.findById(quantity_field_id).text = str(quantity)
+        session.findById(quantity_field_id).text = str(quantity).replace('.', ',')
     else:
         print("Quantity field not found!")
         return
@@ -1132,13 +1132,13 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
 
     if is_last:
         # check and save
-        session.findById("wnd[0]/tbar[1]/btn[7]").press()  # validate
+        # session.findById("wnd[0]/tbar[1]/btn[7]").press()  # validate
         session.findById("wnd[0]/tbar[1]/btn[23]").press()  # save
 
         if str(source_storage_loc) in lt04_lt06_storage_locs:
             # LT06 transaction
             session.findById("wnd[0]/usr/cmbRL02B-DUNKL").key = "H"
-            mb52_doc_nums.append(session.findById("wnd[0]/usr/txtRL02B-MBLNR").text)
+            mb02_doc_nums.append(session.findById("wnd[0]/usr/txtRL02B-MBLNR").text)
             session.findById("wnd[0]").sendVKey(0)
 
             # LT04 transaction
@@ -1152,10 +1152,11 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
             lt04_row_count = lt04_table_control.VerticalScrollbar.Maximum
 
             for q in quantities:
-
+                q_float = float(q)
+                q_str = str(q_float).replace('.', ',')
                 lt_04_row_num = None
                 for i in range(lt04_row_count):
-                    if float(session.findById(f"wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtLQUA-VERME[4,{i}]").text) >= float(q):
+                    if float(str(session.findById(f"wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtLQUA-VERME[4,{i}]").text).strip().replace('.', '').replace(',', '.')) >= q_float:
                         lt_04_row_num = i
                         break
 
@@ -1164,8 +1165,7 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
 
                 time.sleep(0.1)
                 session.findById(
-                    f"wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtRL03T-SELMG[0,{lt_04_row_num}]").text = str(
-                    q)
+                    f"wnd[0]/usr/tabsFUNC_TABSTRIP/tabpAQVB/ssubD0106_S:SAPML03T:1061/tblSAPML03TD1061/txtRL03T-SELMG[0,{lt_04_row_num}]").text = q_str
                 show_message("Sprawdź mniejsca WM i potwierdź 'OK' aby przejść dalej.")
                 session.findById("wnd[0]/tbar[1]/btn[16]").press()
 
@@ -1178,6 +1178,13 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
                 to_number = match.group()
                 to_numbers.append(to_number)
 
+        else:
+            sap_msg = get_sap_message(session)
+            mat_doc_pattern = r"\b\d{10}\b"  # material doc pattern
+            match = re.search(mat_doc_pattern, sap_msg)
+            if match:
+                mat_doc_number = match.group()
+                mb02_doc_nums.append(mat_doc_number)
 
 def mb02_printing(session, doc_num, year, quantity_of_printed_docs, printer="8489"):
     session.findById("wnd[0]/tbar[0]/okcd").text = "/nmb02"
