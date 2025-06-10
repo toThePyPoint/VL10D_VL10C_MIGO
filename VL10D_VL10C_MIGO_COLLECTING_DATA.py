@@ -175,6 +175,9 @@ if __name__ == "__main__":
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
         vl10d_merged_df = filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10d_merged_df)
         fill_storage_location_quantities(mb52_df, vl10d_merged_df)
+        # filter out rows with all goods on 0004 storage location
+        vl10d_merged_df['loc_0004'] = vl10d_merged_df['loc_0004'].apply(lambda x: float(str(x).replace(',', '.')))
+        vl10d_merged_df = vl10d_merged_df[(vl10d_merged_df['stock'] != vl10d_merged_df['loc_0004']) | (vl10d_merged_df['stock'] == 0)]
         # create source_loc col
         vl10d_merged_df['source_loc'] = vl10d_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
         # sort headers
@@ -272,6 +275,9 @@ if __name__ == "__main__":
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
         vl10c_merged_df = filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10c_merged_df)
         fill_storage_location_quantities(mb52_df, vl10c_merged_df)
+        # filter out rows with all goods on 0004 storage location
+        vl10c_merged_df['loc_0004'] = vl10c_merged_df['loc_0004'].apply(lambda x: float(str(x).replace(',', '.')))
+        vl10c_merged_df = vl10c_merged_df[(vl10c_merged_df['stock'] != vl10c_merged_df['loc_0004']) | (vl10c_merged_df['stock'] == 0)]
         # create source_loc col
         vl10c_merged_df['source_loc'] = vl10c_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
         # sort headers
