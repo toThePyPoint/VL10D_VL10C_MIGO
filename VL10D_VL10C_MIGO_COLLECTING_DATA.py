@@ -14,7 +14,7 @@ from other_functions import append_status_to_excel, delete_file, vl10d_process_d
     run_excel_file_and_adjust_col_width, copy_df_column_to_clipboard, close_excel_file
 from sap_transactions import vl10d_vl10c_load_variant_and_export_data, mb52_load_sap_numbers_and_export_data
 from sap_functions import open_one_transaction, zsbe_load_and_export_data, simple_load_variant
-from helper_program_functions import filter_out_items_booked_to_0004_spec_cust_requirement_location, fill_storage_location_quantities, get_source_storage_location
+from helper_program_functions import filter_out_items_booked_to_0004_spec_cust_requirement_location, fill_storage_location_quantities, get_source_storage_location, determine_header_suffix
 from program_paths import ProgramPaths
 
 
@@ -189,6 +189,9 @@ if __name__ == "__main__":
             "procurement_type", "goods_recepient_name"
         ]
         vl10d_merged_df = vl10d_merged_df[headers]
+
+        # TODO: Fill out header_suffix
+        vl10d_merged_df['header_suffix'] = vl10d_merged_df.apply(lambda row: determine_header_suffix(row), axis=1)
 
         # ---------------------------------------------------
 

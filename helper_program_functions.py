@@ -54,3 +54,22 @@ def get_source_storage_location(row, quantity):
         if float(str(row[loc]).replace(',', '.')) >= float(str(quantity).strip()):
             return loc[-4:]  # Return the last 4 characters of the location name
     return None
+
+
+def determine_header_suffix(row):
+    prod_suffix = 'production'
+    service_suffix = 'service'
+
+    production_strings = ('TLBTL')
+    service_strings = ('GSB', 'FO')
+    quantity_treshold = 30
+
+    if str(row['product_name']).startswith(production_strings):
+        return prod_suffix
+    elif str(row['product_name']).startswith(service_strings):
+        return service_suffix
+    else:
+        if row['quantity'] > quantity_treshold:
+            return prod_suffix
+        else:
+            return service_suffix
