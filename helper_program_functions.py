@@ -40,7 +40,7 @@ def fill_storage_location_quantities(mb52_df, vl10x_merged_df):
     mb52_df = mb52_df[mb52_df['Numer zapasu specjalnego'].isnull()]
 
     for row in mb52_df.iterrows():
-        stock = str(row[1]['stock']).strip().replace('.', '').replace(',', '.')
+        stock = str(row[1]['stock']).replace('.', ',')
         sap_nr = row[1]['SAP_nr']
         storage_loc = row[1]['storage_loc']
         vl10x_merged_df.loc[vl10x_merged_df['SAP_nr'] == sap_nr, f'loc_{storage_loc}'] = stock
@@ -51,6 +51,6 @@ def fill_storage_location_quantities(mb52_df, vl10x_merged_df):
 def get_source_storage_location(row, quantity):
     storage_locs = ['loc_0007', 'loc_0003', 'loc_0750', 'loc_0005']
     for loc in storage_locs:
-        if float(row[loc]) >= float(str(quantity).strip()):
+        if float(str(row[loc]).replace(',', '.')) >= float(str(quantity).strip()):
             return loc[-4:]  # Return the last 4 characters of the location name
     return None

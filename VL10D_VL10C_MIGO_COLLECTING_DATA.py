@@ -169,7 +169,7 @@ if __name__ == "__main__":
         time.sleep(3)
         close_excel_file(file_name=paths['mb52_vl10d'].name)
         # load zsbe data into data frame
-        mb52_df = pd.read_excel(paths['mb52_vl10d'], dtype={'Skład': str, 'Materiał': str})
+        mb52_df = pd.read_excel(paths['mb52_vl10d'], dtype={'Skład': str, 'Materiał': str, 'Nieogranicz.wykorz.': str})
         mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
                        inplace=True)
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
@@ -266,7 +266,7 @@ if __name__ == "__main__":
         time.sleep(3)
         close_excel_file(file_name=paths['mb52_vl10c'].name)
         # load zsbe data into data frame
-        mb52_df = pd.read_excel(paths['mb52_vl10c'], dtype={'Skład': str, 'Materiał': str})
+        mb52_df = pd.read_excel(paths['mb52_vl10c'], dtype={'Skład': str, 'Materiał': str, 'Nieogranicz.wykorz.': str})
         mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
                        inplace=True)
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')

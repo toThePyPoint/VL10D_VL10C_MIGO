@@ -104,7 +104,7 @@ def migo_booking(data_file, session, mb02_doc_nums, plant="2101", movement_type=
             mb02_printing(session=sess1,
                           doc_num=str(mb02_doc_nums_313[-1]),  # print the documents for last number in the list
                           year=str(pd.Timestamp.now().year),
-                          quantity_of_printed_docs="2",
+                          quantity_of_printed_docs="1",
                           )
 
 
