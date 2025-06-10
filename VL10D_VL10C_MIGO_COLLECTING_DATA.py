@@ -127,7 +127,6 @@ if __name__ == "__main__":
         zsbe_df["Materiał"] = zsbe_df["Materiał"].astype(str)
         vl10d_merged_df = pd.merge(vl10d_df, zsbe_df, left_on="SAP_nr", right_on="Materiał", how="left")
 
-        # TODO: Filter LS1 and LS2 MRP controllers out
         # drop unnecessary columns and rename new column
         columns_to_drop = [
             "Materiał",
@@ -140,10 +139,10 @@ if __name__ == "__main__":
         vl10d_merged_df.rename(columns=new_col_names, inplace=True)
         # filter the data
         # vl10d_merged_df = vl10d_merged_df[~vl10d_merged_df['mrp_controller'].isin(["LS2"])]
-        # remove rows where 'product_name' starts with 'EBR' or 'EDR' and 'procurement_type' == 'E'
+        # remove rows where 'product_name' starts with 'EBR' or 'EDR' or 'DICHT' and 'procurement_type' == 'E'
         vl10d_merged_df = vl10d_merged_df[
             ~(
-                    vl10d_merged_df['product_name'].str.startswith(('EBR', 'EDR')) &
+                    vl10d_merged_df['product_name'].str.startswith(('EBR', 'EDR', 'DICHT')) &
                     (vl10d_merged_df['procurement_type'] == 'E')
             )
         ]
@@ -228,7 +227,6 @@ if __name__ == "__main__":
         zsbe_df["Materiał"] = zsbe_df["Materiał"].astype(str)
         vl10c_merged_df = pd.merge(vl10c_df, zsbe_df, left_on="SAP_nr", right_on="Materiał", how="left")
 
-        # TODO: Filter LS1 and LS2 MRP controllers out
         # drop unnecessary columns and rename new column
         columns_to_drop = [
             "Materiał",
@@ -239,12 +237,10 @@ if __name__ == "__main__":
             "Rodzaj nabycia": "procurement_type"
         }
         vl10c_merged_df.rename(columns=new_col_names, inplace=True)
-        # filter the data
-        vl10c_merged_df = vl10c_merged_df[~vl10c_merged_df['mrp_controller'].isin(["LS1", "LS2"])]
-        # remove rows where 'product_name' starts with 'EBR' or 'EDR' and 'procurement_type' == 'E'
+        # remove rows where 'product_name' starts with 'EBR' or 'EDR' or 'DICHT' and 'procurement_type' == 'E'
         vl10c_merged_df = vl10c_merged_df[
             ~(
-                    vl10c_merged_df['product_name'].str.startswith(('EBR', 'EDR')) &
+                    vl10c_merged_df['product_name'].str.startswith(('EBR', 'EDR', 'DICHT')) &
                     (vl10c_merged_df['procurement_type'] == 'E')
             )
         ]

@@ -359,7 +359,7 @@ def vl10d_process_data(file_name_raw_data):
     strings_to_filter_out_1 = ['ZRV', 'ZAR', 'ZRI', 'ZJA', 'ZRE', 'R4', 'R7', 'ZFA', 'R6', 'R8', 'Q4', 'R3', 'R2',
                                'Behang Screen', 'EFL', 'ABR', 'R5', 'ZIN', 'ERS', 'ASA', 'ASI', 'MDA', 'POS',
                                'ZRO', 'ZRS', 'EDH', 'EPA', 'EDL', 'EDZ', 'ED_', 'Ständer', 'Koszty transportu',
-                               'EDQ', 'EDT', 'PALETTE', 'EDF', 'EA', 'EDS', 'EDW', 'EDG']
+                               'EDQ', 'EDT', 'PALETTE', 'EDF', 'EA', 'EDS', 'EDW', 'EDG', 'SET']
     strings_to_filter_out_2 = ["WROBELM", "KICIAM", "PLATINE", "MONTAZS100", "POLICHANCZUK", "WOZNIAKT"]
     # strings_to_filter_out_3 = ["103702"]
     strings_to_filter_out_4 = ["99"]
