@@ -359,7 +359,7 @@ def vl10d_process_data(file_name_raw_data):
     strings_to_filter_out_1 = ['ZRV', 'ZAR', 'ZRI', 'ZJA', 'ZRE', 'R4', 'R7', 'ZFA', 'R6', 'R8', 'Q4', 'R3', 'R2',
                                'Behang Screen', 'EFL', 'ABR', 'R5', 'ZIN', 'ERS', 'ASA', 'ASI', 'MDA', 'POS',
                                'ZRO', 'ZRS', 'EDH', 'EPA', 'EDL', 'EDZ', 'ED_', 'Ständer', 'Koszty transportu',
-                               'EDQ', 'EDT', 'PALETTE']
+                               'EDQ', 'EDT', 'PALETTE', 'EDF', 'EA', 'EDS', 'EDW', 'EDG']
     strings_to_filter_out_2 = ["WROBELM", "KICIAM", "PLATINE", "MONTAZS100", "POLICHANCZUK", "WOZNIAKT"]
     # strings_to_filter_out_3 = ["103702"]
     strings_to_filter_out_4 = ["99"]
@@ -371,6 +371,8 @@ def vl10d_process_data(file_name_raw_data):
     # df_filtered = df_filtered[~df_filtered['goods_recepient_number'].isin(strings_to_filter_out_3)]
     df_filtered = df_filtered[~df_filtered['SAP_nr'].str.startswith(tuple(strings_to_filter_out_4))]
     df_filtered = df_filtered[~df_filtered['product_name'].isin(strings_to_filter_out_5)]
+    df_filtered = df_filtered[
+        ~df_filtered['product_name'].str.contains(r'Ausstellarm.*kpl.*|Eckumlenkung.*kpl.*|Gasfeder.*kpl.*', case=False, na=False)]
 
     df_filtered.insert(loc=2, column='is_booking_req', value='n')
 

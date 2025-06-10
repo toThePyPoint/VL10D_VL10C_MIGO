@@ -173,7 +173,7 @@ if __name__ == "__main__":
         mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
                        inplace=True)
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
-        filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10d_merged_df)
+        vl10d_merged_df = filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10d_merged_df)
         fill_storage_location_quantities(mb52_df, vl10d_merged_df)
         # create source_loc col
         vl10d_merged_df['source_loc'] = vl10d_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
@@ -270,7 +270,7 @@ if __name__ == "__main__":
         mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
                        inplace=True)
         # mb52_df.to_pickle('excel_files/mb52_df.pkl')
-        filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10c_merged_df)
+        vl10c_merged_df = filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10c_merged_df)
         fill_storage_location_quantities(mb52_df, vl10c_merged_df)
         # create source_loc col
         vl10c_merged_df['source_loc'] = vl10c_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
