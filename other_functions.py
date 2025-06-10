@@ -384,6 +384,14 @@ def vl10d_process_data(file_name_raw_data):
     df_sorted['quantity'] = df_sorted['quantity'].apply(lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))
     df_sorted['stock'] = df_sorted['stock'].apply(lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))
 
+    # filter out  rows with date later than the day after tomorrow in column 'goods_issue_date'
+    # and the value in 'stock' column equals zero
+    cutoff_date = datetime.now().date() + timedelta(days=1)
+    df_sorted = df_sorted[~(
+            (df_sorted['goods_issue_date'] > cutoff_date) &
+            (df_sorted['stock'] == 0)
+    )]
+
     return df_sorted
 
 
