@@ -150,6 +150,7 @@ if __name__ == "__main__":
             migo_booking(paths[vl10x_file_path], sess1, mb02_doc_nums_313)
             migo_booking(paths[vl10x_file_path], sess1, mb02_doc_nums_315, movement_type="315", is_describtion=True)
 
+        # save files
         temp_df = pd.DataFrame({"mb52_mat_docs_nums_313": mb02_doc_nums_313})
         temp_df.to_excel(paths["mb52_mat_docs_nums_313"])
         temp_df = pd.DataFrame({"mb52_mat_docs_nums_315": mb02_doc_nums_315})
@@ -157,14 +158,6 @@ if __name__ == "__main__":
 
         temp_df = pd.DataFrame({"to_numbers": to_numbers})
         temp_df.to_excel(paths["to_numbers"])
-
-        # for mat_doc_num in mb52_doc_nums:
-        #     mb02_printing(
-        #         session=sess1,
-        #         doc_num=str(mat_doc_num),
-        #         year=str(pd.Timestamp.now().year),
-        #         quantity_of_printed_docs="2",
-        #     )
 
         # Handle the information for status file
         # program_status["COHV_CONVERSION_SYSTEM_MESSAGE"] = result_sap_messages

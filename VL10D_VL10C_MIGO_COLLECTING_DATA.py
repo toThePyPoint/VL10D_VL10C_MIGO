@@ -25,9 +25,114 @@ paths_instance = ProgramPaths()
 # ERROR_LOG_PATH = BASE_PATH / "error.log"
 VL10D_VARIANT_NAME = "SHIP_LU_PPS002"
 VL10C_VARIANT_NAME = "SHIP_LU_PPS001"
+MB52_VARIANT_NAME = "MISC_LU_PPS001"
 
 BASE_PATH = paths_instance.BASE_PATH
 ERROR_LOG_PATH = paths_instance.ERROR_LOG_PATH
+
+
+def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction_name="vl10d", zsbe_data_vl10x_path='zsbe_data_vl10d', mb52_vl10x_path='mb52_vl10d', vl10x_clean_data_path='vl10d_clean_data', vl10x_variant_name=VL10D_VARIANT_NAME, mb52_variant_name=MB52_VARIANT_NAME):
+    #  export vl10x_all_items.xls from VL10X transaction
+    vl10d_vl10c_load_variant_and_export_data(
+        session=sap_session,
+        file_path=str(paths["temp_folder"]),
+        file_name=paths[vl_10x_raw_data_path].name,
+        transaction_name=transaction_name,
+        variant_name=vl10x_variant_name
+    )
+    # process the data
+    vl10x_df = vl10d_process_data(file_name_raw_data=paths[vl_10x_raw_data_path])
+
+    # Match MRP controllers
+    # copy SAP numbers to clipboard
+    copy_df_column_to_clipboard(vl10x_df, "SAP_nr")
+    # open ZSBE transaction
+    open_one_transaction(session=sap_session, transaction_name="ZSBE")
+    # zsbe - load data and export it to excel file
+    zsbe_load_and_export_data(session=sap_session, file_path=str(paths['temp_folder']),
+                              file_name=paths[zsbe_data_vl10x_path].name)
+    # close Excel file which should be automatically opened
+    time.sleep(3)
+    close_excel_file(file_name=paths[zsbe_data_vl10x_path].name)
+    # load zsbe data into data frame
+    zsbe_df = pd.read_excel(paths[zsbe_data_vl10x_path])
+    zsbe_df["Materiał"] = zsbe_df["Materiał"].astype(str)
+    vl10x_merged_df = pd.merge(vl10x_df, zsbe_df, left_on="SAP_nr", right_on="Materiał", how="left")
+
+    # drop unnecessary columns and rename new column
+    columns_to_drop = [
+        "Materiał",
+    ]
+    vl10x_merged_df.drop(columns=columns_to_drop, inplace=True)
+    new_col_names = {
+        "Kontroler MRP": "mrp_controller",
+        "Rodzaj nabycia": "procurement_type"
+    }
+    vl10x_merged_df.rename(columns=new_col_names, inplace=True)
+
+    # filter the data
+    # remove rows where 'product_name' starts with 'EBR' or 'EDR' or 'DICHT' and 'procurement_type' == 'E'
+    vl10x_merged_df = vl10x_merged_df[
+        ~(
+                vl10x_merged_df['product_name'].str.startswith(('EBR', 'EDR', 'DICHT')) &
+                (vl10x_merged_df['procurement_type'] == 'E')
+        )
+    ]
+
+    # Add header column
+    if transaction_name == 'vl10d':
+        vl10x_merged_df['header'] = vl10x_merged_df['document_number'] + " " + vl10x_merged_df[
+            'goods_recepient_number'].apply(lambda x: goods_recepients_map[x])
+    elif transaction_name == 'vl10c':
+        vl10x_merged_df['header'] = vl10x_merged_df['document_number'] + " " + vl10x_merged_df['sales_office'].apply(lambda x: sales_offices_map[x])
+
+    # match quantities to storage locations
+    # create columns
+    vl10x_merged_df['header_suffix'] = ""
+    for loc in storage_locations_list:
+        vl10x_merged_df[f'loc_{loc}'] = 0
+    # copy SAP numbers to clipboard
+    copy_df_column_to_clipboard(vl10x_merged_df, "SAP_nr")
+    # open MB52 transaction
+    open_one_transaction(session=sap_session, transaction_name="MB52")
+    simple_load_variant(sap_session, mb52_variant_name, True)
+    mb52_load_sap_numbers_and_export_data(session=sap_session, file_path=str(paths['temp_folder']),
+                                          file_name=paths[mb52_vl10x_path].name)
+    # close Excel file which should be automatically opened
+    time.sleep(3)
+    close_excel_file(file_name=paths[mb52_vl10x_path].name)
+    # load zsbe data into data frame
+    mb52_df = pd.read_excel(paths[mb52_vl10x_path], dtype={'Skład': str, 'Materiał': str, 'Nieogranicz.wykorz.': str})
+    mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
+                   inplace=True)
+    vl10x_merged_df = filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10x_merged_df)
+    fill_storage_location_quantities(mb52_df, vl10x_merged_df)
+    # filter out rows with all goods on 0004 storage location
+    vl10x_merged_df['loc_0004'] = vl10x_merged_df['loc_0004'].apply(lambda x: float(str(x).replace(',', '.')))
+    vl10x_merged_df = vl10x_merged_df[
+        (vl10x_merged_df['stock'] != vl10x_merged_df['loc_0004']) | (vl10x_merged_df['stock'] == 0)]
+    # create source_loc col
+    vl10x_merged_df['source_loc'] = vl10x_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']),
+                                                          axis=1)
+    # sort headers
+    headers = [
+        "SAP_nr", "product_name", "quantity", "unit", "stock", "goods_issue_date",
+        "document_number", "doc_position", "is_booking_req", "header",
+        "header_suffix", "source_loc", "loc_0004", "author", "loc_0005",
+        "loc_0007", "loc_0003", "loc_0024", "loc_0010", "loc_0750", "loc_0021",
+        "sales_office", "goods_recepient_number", "mrp_controller",
+        "procurement_type", "goods_recepient_name"
+    ]
+    vl10x_merged_df = vl10x_merged_df[headers]
+
+    # Fill out header_suffix - vl10d only
+    if transaction_name == "vl10d":
+        vl10x_merged_df['header_suffix'] = vl10x_merged_df.apply(lambda row: determine_header_suffix(row), axis=1)
+
+    # save vl10x_merged_df to Excel file
+    vl10x_merged_df.to_excel(paths[vl10x_clean_data_path], index=False)
+    # open Excel file
+    run_excel_file_and_adjust_col_width(paths[vl10x_clean_data_path])
 
 
 if __name__ == "__main__":
@@ -100,200 +205,27 @@ if __name__ == "__main__":
         delete_file(paths["zsbe_data_vl10c"])
         delete_file(paths["mb52_vl10c"])
 
-        # TODO: export vl10d_all_items.xls from VL10D transaction
-        vl10d_vl10c_load_variant_and_export_data(
-            session=sess1,
-            file_path=str(paths["temp_folder"]),
-            file_name=paths["vl10d_raw_data"].name,
-            transaction_name="vl10d",
-            variant_name=VL10D_VARIANT_NAME
-        )
-        # TODO: process the data
-        vl10d_df = vl10d_process_data(file_name_raw_data=paths["vl10d_raw_data"])
+        # RUN VL10D
+        collect_data(sap_session=sess1,
+                     vl_10x_raw_data_path="vl10d_raw_data",
+                     transaction_name='vl10d',
+                     zsbe_data_vl10x_path='zsbe_data_vl10d',
+                     mb52_vl10x_path='mb52_vl10d',
+                     vl10x_clean_data_path='vl10d_clean_data',
+                     vl10x_variant_name=VL10D_VARIANT_NAME,
+                     mb52_variant_name=MB52_VARIANT_NAME
+                     )
 
-        # TODO: Match MRP controllers
-        # copy SAP numbers to clipboard
-        copy_df_column_to_clipboard(vl10d_df, "SAP_nr")
-        # open ZSBE transaction
-        open_one_transaction(session=sess1, transaction_name="ZSBE")
-        # zsbe - load data and export it to excel file
-        zsbe_load_and_export_data(session=sess1, file_path=str(paths['temp_folder']),
-                                  file_name=paths['zsbe_data_vl10d'].name)
-        # close Excel file which should be automatically opened
-        time.sleep(3)
-        close_excel_file(file_name=paths['zsbe_data_vl10d'].name)
-        # load zsbe data into data frame
-        zsbe_df = pd.read_excel(paths['zsbe_data_vl10d'])
-        zsbe_df["Materiał"] = zsbe_df["Materiał"].astype(str)
-        vl10d_merged_df = pd.merge(vl10d_df, zsbe_df, left_on="SAP_nr", right_on="Materiał", how="left")
-
-        # drop unnecessary columns and rename new column
-        columns_to_drop = [
-            "Materiał",
-        ]
-        vl10d_merged_df.drop(columns=columns_to_drop, inplace=True)
-        new_col_names = {
-            "Kontroler MRP": "mrp_controller",
-            "Rodzaj nabycia": "procurement_type"
-        }
-        vl10d_merged_df.rename(columns=new_col_names, inplace=True)
-        # filter the data
-        # vl10d_merged_df = vl10d_merged_df[~vl10d_merged_df['mrp_controller'].isin(["LS2"])]
-        # remove rows where 'product_name' starts with 'EBR' or 'EDR' or 'DICHT' and 'procurement_type' == 'E'
-        vl10d_merged_df = vl10d_merged_df[
-            ~(
-                    vl10d_merged_df['product_name'].str.startswith(('EBR', 'EDR', 'DICHT')) &
-                    (vl10d_merged_df['procurement_type'] == 'E')
-            )
-        ]
-
-        # Add header column
-        vl10d_merged_df['header'] = vl10d_merged_df['document_number'] + " " + vl10d_merged_df['goods_recepient_number'].apply(lambda x: goods_recepients_map[x])
-
-        # ---------------------------------------------------
-        # match quantities to storage locations
-        # create columns
-        vl10d_merged_df['header_suffix'] = ""
-        for loc in storage_locations_list:
-            vl10d_merged_df[f'loc_{loc}'] = 0
-        # vl10d_merged_df['delete'] = False
-        # vl10d_merged_df.to_pickle('excel_files/vl10d_merged_df.pkl')
-        # copy SAP numbers to clipboard
-        copy_df_column_to_clipboard(vl10d_merged_df, "SAP_nr")
-        # open MB52 transaction
-        open_one_transaction(session=sess1, transaction_name="MB52")
-        simple_load_variant(sess1, "MISC_LU_PPS001", True)
-        mb52_load_sap_numbers_and_export_data(session=sess1, file_path=str(paths['temp_folder']), file_name=paths['mb52_vl10d'].name)
-        # close Excel file which should be automatically opened
-        time.sleep(3)
-        close_excel_file(file_name=paths['mb52_vl10d'].name)
-        # load zsbe data into data frame
-        mb52_df = pd.read_excel(paths['mb52_vl10d'], dtype={'Skład': str, 'Materiał': str, 'Nieogranicz.wykorz.': str})
-        mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
-                       inplace=True)
-        # mb52_df.to_pickle('excel_files/mb52_df.pkl')
-        vl10d_merged_df = filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10d_merged_df)
-        fill_storage_location_quantities(mb52_df, vl10d_merged_df)
-        # filter out rows with all goods on 0004 storage location
-        vl10d_merged_df['loc_0004'] = vl10d_merged_df['loc_0004'].apply(lambda x: float(str(x).replace(',', '.')))
-        vl10d_merged_df = vl10d_merged_df[(vl10d_merged_df['stock'] != vl10d_merged_df['loc_0004']) | (vl10d_merged_df['stock'] == 0)]
-        # create source_loc col
-        vl10d_merged_df['source_loc'] = vl10d_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
-        # sort headers
-        headers = [
-            "SAP_nr", "product_name", "quantity", "unit", "stock", "goods_issue_date",
-            "document_number", "doc_position", "is_booking_req", "header",
-            "header_suffix", "source_loc", "loc_0004", "author", "loc_0005",
-            "loc_0007", "loc_0003", "loc_0024", "loc_0010", "loc_0750", "loc_0021",
-            "sales_office", "goods_recepient_number", "mrp_controller",
-            "procurement_type", "goods_recepient_name"
-        ]
-        vl10d_merged_df = vl10d_merged_df[headers]
-
-        # TODO: Fill out header_suffix
-        vl10d_merged_df['header_suffix'] = vl10d_merged_df.apply(lambda row: determine_header_suffix(row), axis=1)
-
-        # ---------------------------------------------------
-
-        # save vl10d_merged_df to Excel file
-        vl10d_merged_df.to_excel(paths['vl10d_clean_data'], index=False)
-        # open Excel file
-        run_excel_file_and_adjust_col_width(paths['vl10d_clean_data'])
-
-        # ---------------------------------------------
-        # ----------------VL10C------------------------
-        # ---------------------------------------------
-        # TODO: export vl10c_all_items.xls from VL10C transaction
-        vl10d_vl10c_load_variant_and_export_data(
-            session=sess1,
-            file_path=str(paths["temp_folder"]),
-            file_name=paths["vl10c_raw_data"].name,
-            transaction_name="vl10c",
-            variant_name=VL10C_VARIANT_NAME
-        )
-        # TODO: process the data
-        vl10c_df = vl10d_process_data(file_name_raw_data=paths["vl10c_raw_data"])
-
-        # TODO: Match MRP controllers
-        # copy SAP numbers to clipboard
-        copy_df_column_to_clipboard(vl10c_df, "SAP_nr")
-        # open ZSBE transaction
-        open_one_transaction(session=sess1, transaction_name="ZSBE")
-        # zsbe - load data and export it to excel file
-        zsbe_load_and_export_data(session=sess1, file_path=str(paths['temp_folder']),
-                                  file_name=paths['zsbe_data_vl10c'].name)
-        # close Excel file which should be automatically opened
-        time.sleep(3)
-        close_excel_file(file_name=paths['zsbe_data_vl10c'].name)
-        # load zsbe data into data frame
-        zsbe_df = pd.read_excel(paths['zsbe_data_vl10c'])
-        zsbe_df["Materiał"] = zsbe_df["Materiał"].astype(str)
-        vl10c_merged_df = pd.merge(vl10c_df, zsbe_df, left_on="SAP_nr", right_on="Materiał", how="left")
-
-        # drop unnecessary columns and rename new column
-        columns_to_drop = [
-            "Materiał",
-        ]
-        vl10c_merged_df.drop(columns=columns_to_drop, inplace=True)
-        new_col_names = {
-            "Kontroler MRP": "mrp_controller",
-            "Rodzaj nabycia": "procurement_type"
-        }
-        vl10c_merged_df.rename(columns=new_col_names, inplace=True)
-        # remove rows where 'product_name' starts with 'EBR' or 'EDR' or 'DICHT' and 'procurement_type' == 'E'
-        vl10c_merged_df = vl10c_merged_df[
-            ~(
-                    vl10c_merged_df['product_name'].str.startswith(('EBR', 'EDR', 'DICHT')) &
-                    (vl10c_merged_df['procurement_type'] == 'E')
-            )
-        ]
-
-        # Add header column
-        vl10c_merged_df['header'] = vl10c_merged_df['document_number'] + " " + vl10c_merged_df['sales_office'].apply(lambda x: sales_offices_map[x])
-
-        # TODO: match quantities to storage locations
-        # create columns
-        vl10c_merged_df['header_suffix'] = ""
-        for loc in storage_locations_list:
-            vl10c_merged_df[f'loc_{loc}'] = 0
-        # vl10c_merged_df.to_pickle('excel_files/vl10c_merged_df.pkl')
-        # copy SAP numbers to clipboard
-        copy_df_column_to_clipboard(vl10c_merged_df, "SAP_nr")
-        # open MB52 transaction
-        open_one_transaction(session=sess1, transaction_name="MB52")
-        simple_load_variant(sess1, "MISC_LU_PPS001", True)
-        mb52_load_sap_numbers_and_export_data(session=sess1, file_path=str(paths['temp_folder']),
-                                              file_name=paths['mb52_vl10c'].name)
-        # close Excel file which should be automatically opened
-        time.sleep(3)
-        close_excel_file(file_name=paths['mb52_vl10c'].name)
-        # load zsbe data into data frame
-        mb52_df = pd.read_excel(paths['mb52_vl10c'], dtype={'Skład': str, 'Materiał': str, 'Nieogranicz.wykorz.': str})
-        mb52_df.rename(columns={"Materiał": "SAP_nr", "Nieogranicz.wykorz.": "stock", "Skład": "storage_loc"},
-                       inplace=True)
-        # mb52_df.to_pickle('excel_files/mb52_df.pkl')
-        vl10c_merged_df = filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10c_merged_df)
-        fill_storage_location_quantities(mb52_df, vl10c_merged_df)
-        # filter out rows with all goods on 0004 storage location
-        vl10c_merged_df['loc_0004'] = vl10c_merged_df['loc_0004'].apply(lambda x: float(str(x).replace(',', '.')))
-        vl10c_merged_df = vl10c_merged_df[(vl10c_merged_df['stock'] != vl10c_merged_df['loc_0004']) | (vl10c_merged_df['stock'] == 0)]
-        # create source_loc col
-        vl10c_merged_df['source_loc'] = vl10c_merged_df.apply(lambda row: get_source_storage_location(row, row['quantity']), axis=1)
-        # sort headers
-        headers = [
-            "SAP_nr", "product_name", "quantity", "unit", "stock", "goods_issue_date",
-            "document_number", "doc_position", "is_booking_req", "header",
-            "header_suffix", "source_loc", "loc_0004", "author", "loc_0005",
-            "loc_0007", "loc_0003", "loc_0024", "loc_0010", "loc_0750", "loc_0021",
-            "sales_office", "goods_recepient_number", "mrp_controller",
-            "procurement_type", "goods_recepient_name"
-        ]
-        vl10c_merged_df = vl10c_merged_df[headers]
-
-        # save vl10c_merged_df to Excel file
-        vl10c_merged_df.to_excel(paths['vl10c_clean_data'], index=False)
-        # open Excel file
-        run_excel_file_and_adjust_col_width(paths['vl10c_clean_data'])
+        # RUN VL10C
+        collect_data(sap_session=sess1,
+                     vl_10x_raw_data_path="vl10c_raw_data",
+                     transaction_name='vl10c',
+                     zsbe_data_vl10x_path='zsbe_data_vl10c',
+                     mb52_vl10x_path='mb52_vl10c',
+                     vl10x_clean_data_path='vl10c_clean_data',
+                     vl10x_variant_name=VL10C_VARIANT_NAME,
+                     mb52_variant_name=MB52_VARIANT_NAME
+                     )
 
         # Handle the information for status file
         # program_status["COHV_CONVERSION_SYSTEM_MESSAGE"] = result_sap_messages
