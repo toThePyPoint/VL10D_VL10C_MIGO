@@ -12,19 +12,27 @@ import pandas as pd
 from sap_connection import get_last_session
 from sap_transactions import migo_lt06_lt04_booking_and_transfer, mb02_printing
 from program_paths import ProgramPaths
+from gui_manager import show_message
 
 
 paths_instance = ProgramPaths()
 BASE_PATH = paths_instance.BASE_PATH
 ERROR_LOG_PATH = paths_instance.ERROR_LOG_PATH
 
+ups_shipment_file = False
+
 
 def migo_booking(data_file, session, mb02_doc_nums, plant="2101", movement_type="313", is_describtion=False):
+    global ups_shipment_file
     vl_10x_df = pd.read_excel(data_file, dtype={"source_loc": str})
     vl_10x_df = vl_10x_df[
         (vl_10x_df["is_booking_req"] == "t") & (vl_10x_df["source_loc"].notna())
     ]
     vl_10x_df["header_suffix"] = vl_10x_df["header_suffix"].fillna("")
+
+    # check if there is ups shipment belatronic
+    if '773630' in vl_10x_df['SAP_nr'].astype(str).values:
+        ups_shipment_file = True
 
     for doc_num in vl_10x_df["document_number"].unique():
         temp_doc_df = vl_10x_df[vl_10x_df["document_number"] == doc_num]
@@ -161,6 +169,10 @@ if __name__ == "__main__":
 
         temp_df = pd.DataFrame({"to_numbers": to_numbers})
         temp_df.to_excel(paths["to_numbers"])
+
+        # message if there is belatronic item
+        if ups_shipment_file:
+            show_message('Uzupełnij plik UPS.\nSzczegóły w standardzie.')
 
         # Handle the information for status file
         # program_status["COHV_CONVERSION_SYSTEM_MESSAGE"] = result_sap_messages

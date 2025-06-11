@@ -58,8 +58,8 @@ def get_source_storage_location(row, quantity):
 
 
 def determine_header_suffix(row):
-    prod_suffix = 'production'
-    service_suffix = 'service'
+    prod_suffix = 'produkcja'
+    service_suffix = 'serwis'
 
     production_strings = ('TLBTL')
     service_strings = ('GSB', 'FO')
