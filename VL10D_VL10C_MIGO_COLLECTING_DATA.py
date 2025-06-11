@@ -14,7 +14,9 @@ from other_functions import append_status_to_excel, delete_file, vl10d_process_d
     run_excel_file_and_adjust_col_width, copy_df_column_to_clipboard, close_excel_file
 from sap_transactions import vl10d_vl10c_load_variant_and_export_data, mb52_load_sap_numbers_and_export_data
 from sap_functions import open_one_transaction, zsbe_load_and_export_data, simple_load_variant
-from helper_program_functions import filter_out_items_booked_to_0004_spec_cust_requirement_location, fill_storage_location_quantities, get_source_storage_location, determine_header_suffix
+from helper_program_functions import (filter_out_items_booked_to_0004_spec_cust_requirement_location,
+                                      fill_storage_location_quantities, get_source_storage_location,
+                                      determine_header_suffix, determine_vl10c_header)
 from program_paths import ProgramPaths
 
 
@@ -30,8 +32,43 @@ MB52_VARIANT_NAME = "MISC_LU_PPS001"
 BASE_PATH = paths_instance.BASE_PATH
 ERROR_LOG_PATH = paths_instance.ERROR_LOG_PATH
 
+sales_offices_map = {
+    "LV01": "Łotwa",
+    "DE92": "Roto Treppen",
+    "LT01": "Litwa",
+    "FR01": "Francja",
+    "IT03": "Włochy",
+    "EE01": "Estonia",
+    "CZ01": "Czechy",
+    "PL21": "Polska-Export",
+    "RU02": "Rosja(Kaliningrad)",
+    "RO01": "Rumunia",
+    "HU01": "Węgry",
+    "PL01": "Polska",
+    "ES01": "Hiszpania",
+    "PT01": "Portugalia",
+    "UA01": "Ukraina",
+    "GB01": "Anglia",
+    "SI01": "Słowenia",
+    "BY01": "Białoruś",
+    "SK01": "Słowacja",
+    "HR01": "Chorwacja",
+    "PL02": "Polska",
+}
+goods_recepients_map = {
+    "100300": "0301",
+    "103702": "3701",
+    "101203": "1201"
+}
 
-def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction_name="vl10d", zsbe_data_vl10x_path='zsbe_data_vl10d', mb52_vl10x_path='mb52_vl10d', vl10x_clean_data_path='vl10d_clean_data', vl10x_variant_name=VL10D_VARIANT_NAME, mb52_variant_name=MB52_VARIANT_NAME):
+storage_locations_list = ['0004', '0005', '0007', '0003', '0024', '0010', '0750', '0021']
+
+
+def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction_name="vl10d",
+                 zsbe_data_vl10x_path='zsbe_data_vl10d', mb52_vl10x_path='mb52_vl10d',
+                 vl10x_clean_data_path='vl10d_clean_data', vl10x_variant_name=VL10D_VARIANT_NAME,
+                 mb52_variant_name=MB52_VARIANT_NAME):
+
     #  export vl10x_all_items.xls from VL10X transaction
     vl10d_vl10c_load_variant_and_export_data(
         session=sap_session,
@@ -84,7 +121,7 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
         vl10x_merged_df['header'] = vl10x_merged_df['document_number'] + " " + vl10x_merged_df[
             'goods_recepient_number'].apply(lambda x: goods_recepients_map[x])
     elif transaction_name == 'vl10c':
-        vl10x_merged_df['header'] = vl10x_merged_df['document_number'] + " " + vl10x_merged_df['sales_office'].apply(lambda x: sales_offices_map[x])
+        vl10x_merged_df['header'] = vl10x_merged_df['document_number'] + " " + vl10x_merged_df.apply(lambda row: determine_vl10c_header(row, sales_offices_map), axis=1)
 
     # match quantities to storage locations
     # create columns
@@ -144,37 +181,6 @@ if __name__ == "__main__":
 
     today = datetime.today().strftime("%Y_%m_%d")
     start_time = datetime.now().strftime("%H:%M:%S")
-
-    sales_offices_map = {
-        "LV01": "Łotwa",
-        "DE92": "Roto Treppen",
-        "LT01": "Litwa",
-        "FR01": "Francja",
-        "IT03": "Włochy",
-        "EE01": "Estonia",
-        "CZ01": "Czechy",
-        "PL21": "Polska-Export",
-        "RU02": "Rosja(Kaliningrad)",
-        "RO01": "Rumunia",
-        "HU01": "Węgry",
-        "PL01": "Polska",
-        "ES01": "Hiszpania",
-        "PT01": "Portugalia",
-        "UA01": "Ukraina",
-        "GB01": "Anglia",
-        "SI01": "Słowenia",
-        "BY01": "Białoruś",
-        "SK01": "Słowacja",
-        "HR01": "Chorwacja",
-        "PL02": "Polska",
-    }
-    goods_recepients_map = {
-        "100300": "0301",
-        "103702": "3701",
-        "101203": "1201"
-    }
-
-    storage_locations_list = ['0004', '0005', '0007', '0003', '0024', '0010', '0750', '0021']
 
     paths = paths_instance.paths
 

@@ -1,4 +1,5 @@
 import pandas as pd
+from gui_manager import show_message
 
 
 def filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10x_merged_df):
@@ -62,14 +63,21 @@ def determine_header_suffix(row):
 
     production_strings = ('TLBTL')
     service_strings = ('GSB', 'FO')
-    quantity_treshold = 30
+    quantity_threshold = 30
 
     if str(row['product_name']).startswith(production_strings):
         return prod_suffix
     elif str(row['product_name']).startswith(service_strings):
         return service_suffix
     else:
-        if row['quantity'] > quantity_treshold:
+        if row['quantity'] > quantity_threshold:
             return prod_suffix
         else:
             return service_suffix
+
+
+def determine_vl10c_header(row, sales_offices_map):
+    if row['SAP_nr'] == '773630':
+        return 'BelatronicUPS'
+    else:
+        return sales_offices_map[row['sales_office']]

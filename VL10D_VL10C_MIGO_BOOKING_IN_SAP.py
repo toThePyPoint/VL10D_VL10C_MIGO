@@ -70,9 +70,12 @@ def migo_booking(data_file, session, mb02_doc_nums, plant="2101", movement_type=
                 header = row[1]["header"] + " " + row[1]["header_suffix"]
                 sap_nr = row[1]["SAP_nr"]
                 quantity = row[1]["quantity"]
-                storage_loc = (
-                    row[1]["source_loc"] if pd.notna(row[1]["source_loc"]) else None
-                )
+                if movement_type == "315":
+                    storage_loc = "0004"
+                else:
+                    storage_loc = (
+                        row[1]["source_loc"] if pd.notna(row[1]["source_loc"]) else None
+                    )
                 # TODO: Handle missing storage location
                 if idx == temp_doc_df_length:
                     is_last = True
