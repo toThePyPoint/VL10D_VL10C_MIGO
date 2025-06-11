@@ -176,7 +176,7 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
         vl10x_merged_df['delete'] = vl10x_merged_df['SAP_nr'].apply(
             lambda x: str(x).strip() in mrp_stocks_df_0301['Material'].values)
         vl10x_merged_df = vl10x_merged_df[
-            ~((vl10x_merged_df['delete'] == False) & (vl10x_merged_df['goods_recepient_number'] == '100300'))]
+            ~((vl10x_merged_df['delete'] == True) & (vl10x_merged_df['goods_recepient_number'] == '100300'))]
         vl10x_merged_df = vl10x_merged_df.drop(columns=['delete'])
 
     # save vl10x_merged_df to Excel file

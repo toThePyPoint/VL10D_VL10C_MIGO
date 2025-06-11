@@ -361,7 +361,7 @@ def vl10d_process_data(file_name_raw_data):
                                'ZRO', 'ZRS', 'EDH', 'EPA', 'EDL', 'EDZ', 'ED_', 'Ständer', 'Koszty transportu',
                                'EDQ', 'EDT', 'PALETTE', 'EDF', 'EA', 'EDS', 'EDW', 'EDG', 'SET', 'VERSTEMMUNGSET',
                                'ZESTAW.DOSZCZ', 'AAS']
-    strings_to_filter_out_2 = ["WROBELM", "KICIAM", "PLATINE", "MONTAZS100", "POLICHANCZUK", "WOZNIAKT"]
+    strings_to_filter_out_2 = ["WROBELM", "KICIAM", "PLATINE", "MONTAZS100", "POLICHANCZUK"]
     # strings_to_filter_out_3 = ["103702"]
     strings_to_filter_out_4 = ["99"]
     strings_to_filter_out_5 = ['Artikel']
