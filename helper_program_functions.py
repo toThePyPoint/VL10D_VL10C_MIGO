@@ -58,22 +58,11 @@ def get_source_storage_location(row, quantity):
 
 
 def determine_header_suffix(row):
-    prod_suffix = 'produkcja'
-    service_suffix = 'serwis'
+    label_df = pd.read_excel('produkcja_serwis_labels.XLSX', dtype={'SAP_nr': str, 'label': str})
+    suffix_label_dict = dict(zip(label_df['SAP_nr'], label_df['label']))
 
-    production_strings = ('TLBTL')
-    service_strings = ('GSB', 'FO')
-    quantity_threshold = 30
-
-    if str(row['product_name']).startswith(production_strings):
-        return prod_suffix
-    elif str(row['product_name']).startswith(service_strings):
-        return service_suffix
-    else:
-        if row['quantity'] > quantity_threshold:
-            return prod_suffix
-        else:
-            return service_suffix
+    suffix = suffix_label_dict.get(row['SAP_nr'], '???')
+    return suffix
 
 
 def determine_vl10c_header(row, sales_offices_map):
