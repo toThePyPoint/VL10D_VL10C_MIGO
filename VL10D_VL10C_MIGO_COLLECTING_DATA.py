@@ -16,7 +16,8 @@ from sap_transactions import vl10d_vl10c_load_variant_and_export_data, mb52_load
 from sap_functions import open_one_transaction, zsbe_load_and_export_data, simple_load_variant
 from helper_program_functions import (filter_out_items_booked_to_0004_spec_cust_requirement_location,
                                       fill_storage_location_quantities, get_source_storage_location,
-                                      determine_header_suffix, determine_vl10c_header)
+                                      determine_header_suffix, determine_vl10c_header,
+                                      get_mrp_stocks_df_for_specified_plant)
 from program_paths import ProgramPaths
 
 
@@ -170,6 +171,13 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
     if transaction_name == 'vl10d':
         # remove items with empty stock and procurement type equals to 0
         vl10x_merged_df = vl10x_merged_df[~((vl10x_merged_df['stock'] == 0) & (vl10x_merged_df['procurement_type'] == 'E'))]
+        # remove items which are handled by MRP_Stocks process
+        mrp_stocks_df_0301 = get_mrp_stocks_df_for_specified_plant()
+        vl10x_merged_df['delete'] = vl10x_merged_df['SAP_nr'].apply(
+            lambda x: str(x).strip() in mrp_stocks_df_0301['Material'].values)
+        vl10x_merged_df = vl10x_merged_df[
+            ~((vl10x_merged_df['delete'] == False) & (vl10x_merged_df['goods_recepient_number'] == '100300'))]
+        vl10x_merged_df = vl10x_merged_df.drop(columns=['delete'])
 
     # save vl10x_merged_df to Excel file
     vl10x_merged_df.to_excel(paths[vl10x_clean_data_path], index=False)

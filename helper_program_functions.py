@@ -1,5 +1,5 @@
 import pandas as pd
-from gui_manager import show_message
+import os
 
 
 def filter_out_items_booked_to_0004_spec_cust_requirement_location(mb52_df, vl10x_merged_df):
@@ -70,3 +70,15 @@ def determine_vl10c_header(row, sales_offices_map):
         return 'BelatronicUPS'
     else:
         return sales_offices_map[row['sales_office']]
+
+
+def get_mrp_stocks_df_for_specified_plant(plant='0301'):
+    user_name = os.getlogin()
+    path = f'C:\\Users\\{user_name}\\OneDrive - Roto Frank DST\\General\\05_Automatyzacja_narzędzia\\05_MRP_Stocks\\LUB ZKBE1 V7_8.xlsm'
+
+    # Load only columns A and G as strings from the specified sheet
+    df = pd.read_excel(path, sheet_name='Max Lagermenge', usecols='A,G', dtype=str, engine='openpyxl')
+
+    # Filter rows where the 'Plant' column has the value '0301'
+    filtered_df = df[df['Plant'] == plant]
+    return filtered_df
