@@ -166,6 +166,11 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
     if transaction_name == "vl10d":
         vl10x_merged_df['header_suffix'] = vl10x_merged_df.apply(lambda row: determine_header_suffix(row), axis=1)
 
+    # filtering out the tables
+    if transaction_name == 'vl10d':
+        # remove items with empty stock and procurement type equals to 0
+        vl10x_merged_df = vl10x_merged_df[~((vl10x_merged_df['stock'] == 0) & (vl10x_merged_df['procurement_type'] == 'E'))]
+
     # save vl10x_merged_df to Excel file
     vl10x_merged_df.to_excel(paths[vl10x_clean_data_path], index=False)
     # open Excel file
