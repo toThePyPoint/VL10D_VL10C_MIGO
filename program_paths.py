@@ -32,6 +32,7 @@ class ProgramPaths:
         "to_numbers": f"historical_data/transfer_orders_numbers_{today}.xlsx",
         "mb52_mat_docs_nums_313": f"historical_data/mb52_mat_docs_nums_313_{today}.xlsx",
         "mb52_mat_docs_nums_315": f"historical_data/mb52_mat_docs_nums_315_{today}.xlsx",
+        "mb51_vl10c": "temp/mb51_vl10c.xlsx"
     }
 
     def __init__(self):

@@ -12,14 +12,13 @@ import pandas as pd
 from sap_connection import get_last_session
 from other_functions import append_status_to_excel, delete_file, vl10d_process_data, \
     run_excel_file_and_adjust_col_width, copy_df_column_to_clipboard, close_excel_file
-from sap_transactions import vl10d_vl10c_load_variant_and_export_data, mb52_load_sap_numbers_and_export_data
+from sap_transactions import vl10d_vl10c_load_variant_and_export_data, mb52_mb51_load_sap_numbers_and_export_data
 from sap_functions import open_one_transaction, zsbe_load_and_export_data, simple_load_variant
 from helper_program_functions import (filter_out_items_booked_to_0004_spec_cust_requirement_location,
                                       fill_storage_location_quantities, get_source_storage_location,
                                       determine_header_suffix, determine_vl10c_header,
                                       get_mrp_stocks_df_for_specified_plant)
 from program_paths import ProgramPaths
-
 
 paths_instance = ProgramPaths()
 # BASE_PATH = Path(
@@ -29,6 +28,7 @@ paths_instance = ProgramPaths()
 VL10D_VARIANT_NAME = "SHIP_LU_PPS002"
 VL10C_VARIANT_NAME = "SHIP_LU_PPS001"
 MB52_VARIANT_NAME = "MISC_LU_PPS001"
+MB51_VARIANT_NAME = "MISC_LU_PPS001"
 
 BASE_PATH = paths_instance.BASE_PATH
 ERROR_LOG_PATH = paths_instance.ERROR_LOG_PATH
@@ -68,8 +68,7 @@ storage_locations_list = ['0004', '0005', '0007', '0003', '0024', '0010', '0750'
 def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction_name="vl10d",
                  zsbe_data_vl10x_path='zsbe_data_vl10d', mb52_vl10x_path='mb52_vl10d',
                  vl10x_clean_data_path='vl10d_clean_data', vl10x_variant_name=VL10D_VARIANT_NAME,
-                 mb52_variant_name=MB52_VARIANT_NAME):
-
+                 mb52_variant_name=MB52_VARIANT_NAME, mb51_vl10c_path='mb51_vl10c'):
     #  export vl10x_all_items.xls from VL10X transaction
     vl10d_vl10c_load_variant_and_export_data(
         session=sap_session,
@@ -122,7 +121,8 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
         vl10x_merged_df['header'] = vl10x_merged_df['document_number'] + " " + vl10x_merged_df[
             'goods_recepient_number'].apply(lambda x: goods_recepients_map[x])
     elif transaction_name == 'vl10c':
-        vl10x_merged_df['header'] = vl10x_merged_df['document_number'] + " " + vl10x_merged_df.apply(lambda row: determine_vl10c_header(row, sales_offices_map), axis=1)
+        vl10x_merged_df['header'] = vl10x_merged_df['document_number'] + " " + vl10x_merged_df.apply(
+            lambda row: determine_vl10c_header(row, sales_offices_map), axis=1)
 
     # match quantities to storage locations
     # create columns
@@ -134,8 +134,8 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
     # open MB52 transaction
     open_one_transaction(session=sap_session, transaction_name="MB52")
     simple_load_variant(sap_session, mb52_variant_name, True)
-    mb52_load_sap_numbers_and_export_data(session=sap_session, file_path=str(paths['temp_folder']),
-                                          file_name=paths[mb52_vl10x_path].name)
+    mb52_mb51_load_sap_numbers_and_export_data(session=sap_session, file_path=str(paths['temp_folder']),
+                                               file_name=paths[mb52_vl10x_path].name)
     # close Excel file which should be automatically opened
     time.sleep(3)
     close_excel_file(file_name=paths[mb52_vl10x_path].name)
@@ -170,7 +170,8 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
     # filtering out the tables
     if transaction_name == 'vl10d':
         # remove items with empty stock and procurement type equals to 0
-        vl10x_merged_df = vl10x_merged_df[~((vl10x_merged_df['stock'] == 0) & (vl10x_merged_df['procurement_type'] == 'E'))]
+        vl10x_merged_df = vl10x_merged_df[
+            ~((vl10x_merged_df['stock'] == 0) & (vl10x_merged_df['procurement_type'] == 'E'))]
         # remove items which are handled by MRP_Stocks process
         mrp_stocks_df_0301 = get_mrp_stocks_df_for_specified_plant()
         vl10x_merged_df['delete'] = vl10x_merged_df['SAP_nr'].apply(
@@ -178,6 +179,29 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
         vl10x_merged_df = vl10x_merged_df[
             ~((vl10x_merged_df['delete'] == True) & (vl10x_merged_df['goods_recepient_number'] == '100300'))]
         vl10x_merged_df = vl10x_merged_df.drop(columns=['delete'])
+    elif transaction_name == 'vl10c':
+        # remove items which were already booked for specified customer order
+        # get data from MB51
+        # vl10x_merged_df_temp = vl10x_merged_df[vl10x_merged_df['loc_0004'] >= vl10x_merged_df['quantity']]
+        copy_df_column_to_clipboard(vl10x_merged_df, 'SAP_nr')
+        open_one_transaction(sap_session, 'MB51')
+        simple_load_variant(sap_session, MB51_VARIANT_NAME, True)
+        mb52_mb51_load_sap_numbers_and_export_data(session=sap_session, file_path=str(paths['temp_folder']),
+                                                   file_name=paths[mb51_vl10c_path].name)
+        # close Excel file which should be automatically opened
+        time.sleep(3)
+        close_excel_file(file_name=paths[mb51_vl10c_path].name)
+        # load mb51 data into data frame - this df contains bookings from last weeks
+        mb51_df = pd.read_excel(paths[mb51_vl10c_path], dtype={'Materiał': str})
+        mb51_df.rename(columns={"Materiał": "SAP_nr", 'Tekst nagłówka dokumentu': 'header_text', 'Ilość': 'quantity',
+                                'Opis materiału': 'name'}, inplace=True)
+        mb51_df['document_number'] = mb51_df['header_text'].apply(lambda x: x.split(' ')[0])
+        vl10x_merged_df = pd.merge(vl10x_merged_df, mb51_df[['SAP_nr', 'document_number', 'quantity', 'name']],
+                                   on=['SAP_nr', 'document_number', 'quantity'], how='left',
+                                   suffixes=('_vl10c', '_mb51'))
+        vl10x_merged_df.to_excel('test.xlsx')
+        # rows with nan values in column 'name' contain items which weren't booked so far - we keep only these
+        vl10x_merged_df = vl10x_merged_df[vl10x_merged_df['name'].isna()]
 
     # save vl10x_merged_df to Excel file
     vl10x_merged_df.to_excel(paths[vl10x_clean_data_path], index=False)
@@ -216,13 +240,14 @@ if __name__ == "__main__":
     try:
         sess1, tr1, nu1 = get_last_session(max_num_of_sessions=6)
 
-        # delete files
+        # delete temp files
         delete_file(paths["vl10d_raw_data"])
         delete_file(paths["zsbe_data_vl10d"])
         delete_file(paths["mb52_vl10d"])
         delete_file(paths["vl10c_raw_data"])
         delete_file(paths["zsbe_data_vl10c"])
         delete_file(paths["mb52_vl10c"])
+        delete_file(paths['mb51_vl10c'])
 
         # RUN VL10D
         collect_data(sap_session=sess1,

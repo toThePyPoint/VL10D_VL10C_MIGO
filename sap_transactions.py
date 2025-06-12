@@ -948,7 +948,7 @@ def vl10d_vl10c_load_variant_and_export_data(session, file_path, file_name, tran
     session.findById("wnd[1]/tbar[0]/btn[0]").press()
 
 
-def mb52_load_sap_numbers_and_export_data(session, file_path, file_name):
+def mb52_mb51_load_sap_numbers_and_export_data(session, file_path, file_name):
     session.findById("wnd[0]/usr/btn%_MATNR_%_APP_%-VALU_PUSH").press()
     session.findById("wnd[1]/tbar[0]/btn[24]").press()
     session.findById("wnd[1]/tbar[0]/btn[8]").press()
