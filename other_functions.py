@@ -232,7 +232,7 @@ def get_last_n_working_days(n):
     today = datetime.today().date()
 
     # Generate the last 15 working days (excluding weekends)
-    working_days = [today - timedelta(days=i) for i in range(1, n*2) if
+    working_days = [today - timedelta(days=i) for i in range(1, n * 2) if
                     np.is_busday((today - timedelta(days=i)).strftime('%Y-%m-%d'))]
 
     # Keep only the last 15 working days
@@ -365,15 +365,27 @@ def vl10d_process_data(file_name_raw_data):
     # strings_to_filter_out_3 = ["103702"]
     strings_to_filter_out_4 = ["99"]
     strings_to_filter_out_5 = ['Artikel']
+    sap_nums_to_filter_out = [
+        "563384", "494434", "623736", "366895", "366896", "280404", "280403", "740781",
+        "632798", "639067", "618601", "385083", "793290", "615931", "793289", "624446",
+        "335081", "366894", "280406", "335097", "314355", "280407", "494045", "615935",
+        "615934", "628458", "572961", "628459", "572959", "798164", "798165", "290196",
+        "736894", "363694", "363695", "363696", "384329", "990332", "366897", "280400",
+        "990851", "990855", "990856", "990881", "990853", "990854", "375765", "387336",
+        "601307"
+    ]
 
     # Use the .str.startswith() method on the specified column and negate the boolean mask
     df_filtered = df_vl10d[~df_vl10d['product_name'].str.startswith(tuple(strings_to_filter_out_1))]
     df_filtered = df_filtered[~df_filtered['author'].isin(strings_to_filter_out_2)]
     # df_filtered = df_filtered[~df_filtered['goods_recepient_number'].isin(strings_to_filter_out_3)]
     df_filtered = df_filtered[~df_filtered['SAP_nr'].str.startswith(tuple(strings_to_filter_out_4))]
+    df_filtered = df_filtered[~df_filtered['SAP_nr'].isin(sap_nums_to_filter_out)]
     df_filtered = df_filtered[~df_filtered['product_name'].isin(strings_to_filter_out_5)]
     df_filtered = df_filtered[
-        ~df_filtered['product_name'].str.contains(r'Ausstellarm.*kpl.*|Eckumlenkung.*kpl.*|Gasfeder.*kpl.*|FSU.*kpl.*|FSO.*kpl.*', case=False, na=False)]
+        ~df_filtered['product_name'].str.contains(
+            r'Ausstellarm.*kpl.*|Eckumlenkung.*kpl.*|Gasfeder.*kpl.*|FSU.*kpl.*|FSO.*kpl.*|Kapot.*kpl.*', case=False,
+            na=False)]
 
     df_filtered.insert(loc=2, column='is_booking_req', value='n')
 
@@ -382,7 +394,8 @@ def vl10d_process_data(file_name_raw_data):
     df_sorted = df_filtered.sort_values(by=['goods_issue_date', 'document_number'], ascending=[True, True])
 
     # ensure correct quantity data types
-    df_sorted['quantity'] = df_sorted['quantity'].apply(lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))
+    df_sorted['quantity'] = df_sorted['quantity'].apply(
+        lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))
     df_sorted['stock'] = df_sorted['stock'].apply(lambda x: float(str(x).replace('.', '').replace(',', '.').strip()))
 
     # filter out  rows with date later than the day after tomorrow in column 'goods_issue_date'
