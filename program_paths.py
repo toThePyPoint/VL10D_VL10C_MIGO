@@ -23,15 +23,21 @@ class ProgramPaths:
         "vl10d_clean_data": f"historical_data/vl10d_clean_data_{today}.xlsx",
         "vl10c_raw_data": f"temp/vl10c_raw_data.xls",
         "vl10c_clean_data": f"historical_data/vl10c_clean_data_{today}.xlsx",
+        "vl10c_raw_data_treppen": f"temp/vl10c_raw_data_treppen.xls",
+        "vl10c_clean_data_treppen": f"historical_data/vl10c_clean_data_treppen_{today}.xlsx",
         "historical_data": "historical_data",
         "temp_folder": "temp",
         "zsbe_data_vl10d": "temp/zsbe_data_vl10d.xlsx",
         "zsbe_data_vl10c": "temp/zsbe_data_vl10c.xlsx",
+        "zsbe_data_vl10c_treppen": "temp/zsbe_data_vl10c_treppen.xlsx",
         "mb52_vl10d": "temp/mb52_vl10d.xlsx",
         "mb52_vl10c": "temp/mb52_vl10c.xlsx",
+        "mb52_vl10c_treppen": "temp/mb52_vl10c_treppen.xlsx",
         "to_numbers": f"historical_data/transfer_orders_numbers_{today}.xlsx",
         "mb52_mat_docs_nums_313": f"historical_data/mb52_mat_docs_nums_313_{today}.xlsx",
         "mb52_mat_docs_nums_315": f"historical_data/mb52_mat_docs_nums_315_{today}.xlsx",
+        "mb52_mat_docs_nums_313_treppen": f"historical_data/mb52_mat_docs_nums_313_treppen_{today}.xlsx",
+        "mb52_mat_docs_nums_315_treppen": f"historical_data/mb52_mat_docs_nums_315_treppen_{today}.xlsx",
         "mb51_vl10c": "temp/mb51_vl10c.xlsx"
     }
 

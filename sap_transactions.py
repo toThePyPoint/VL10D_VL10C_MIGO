@@ -1186,6 +1186,7 @@ def migo_lt06_lt04_booking_and_transfer(session, mat_nr, source_storage_loc, doc
                 mat_doc_number = match.group()
                 mb02_doc_nums.append(mat_doc_number)
 
+
 def mb02_printing(session, doc_num, year, quantity_of_printed_docs, printer="8489"):
     session.findById("wnd[0]/tbar[0]/okcd").text = "/nmb02"
     session.findById("wnd[0]").sendVKey(0)

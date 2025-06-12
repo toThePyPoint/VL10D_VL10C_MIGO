@@ -27,6 +27,7 @@ paths_instance = ProgramPaths()
 # ERROR_LOG_PATH = BASE_PATH / "error.log"
 VL10D_VARIANT_NAME = "SHIP_LU_PPS002"
 VL10C_VARIANT_NAME = "SHIP_LU_PPS001"
+VL10C_VARIANT_NAME_TREPPEN = "SHIP_LU_PPS003"
 MB52_VARIANT_NAME = "MISC_LU_PPS001"
 MB51_VARIANT_NAME = "MISC_LU_PPS001"
 
@@ -68,7 +69,7 @@ storage_locations_list = ['0004', '0005', '0007', '0003', '0024', '0010', '0750'
 def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction_name="vl10d",
                  zsbe_data_vl10x_path='zsbe_data_vl10d', mb52_vl10x_path='mb52_vl10d',
                  vl10x_clean_data_path='vl10d_clean_data', vl10x_variant_name=VL10D_VARIANT_NAME,
-                 mb52_variant_name=MB52_VARIANT_NAME, mb51_vl10c_path='mb51_vl10c'):
+                 mb52_variant_name=MB52_VARIANT_NAME, mb51_vl10c_path='mb51_vl10c', is_treppen=False):
     #  export vl10x_all_items.xls from VL10X transaction
     vl10d_vl10c_load_variant_and_export_data(
         session=sap_session,
@@ -179,7 +180,7 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
         vl10x_merged_df = vl10x_merged_df[
             ~((vl10x_merged_df['delete'] == True) & (vl10x_merged_df['goods_recepient_number'] == '100300'))]
         vl10x_merged_df = vl10x_merged_df.drop(columns=['delete'])
-    elif transaction_name == 'vl10c':
+    elif transaction_name == 'vl10c' and not is_treppen:
         # remove items which were already booked for specified customer order
         # get data from MB51
         # vl10x_merged_df_temp = vl10x_merged_df[vl10x_merged_df['loc_0004'] >= vl10x_merged_df['quantity']]
@@ -199,7 +200,6 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
         vl10x_merged_df = pd.merge(vl10x_merged_df, mb51_df[['SAP_nr', 'document_number', 'quantity', 'name']],
                                    on=['SAP_nr', 'document_number', 'quantity'], how='left',
                                    suffixes=('_vl10c', '_mb51'))
-        vl10x_merged_df.to_excel('test.xlsx')
         # rows with nan values in column 'name' contain items which weren't booked so far - we keep only these
         vl10x_merged_df = vl10x_merged_df[vl10x_merged_df['name'].isna()]
 
@@ -247,6 +247,9 @@ if __name__ == "__main__":
         delete_file(paths["vl10c_raw_data"])
         delete_file(paths["zsbe_data_vl10c"])
         delete_file(paths["mb52_vl10c"])
+        delete_file(paths["vl10c_raw_data_treppen"])
+        delete_file(paths["zsbe_data_vl10c_treppen"])
+        delete_file(paths["mb52_vl10c_treppen"])
         delete_file(paths['mb51_vl10c'])
 
         # RUN VL10D
@@ -271,6 +274,18 @@ if __name__ == "__main__":
                      mb52_variant_name=MB52_VARIANT_NAME
                      )
 
+        # RUN VL10C TREPPEN
+        collect_data(sap_session=sess1,
+                     vl_10x_raw_data_path="vl10c_raw_data_treppen",
+                     transaction_name='vl10c',
+                     zsbe_data_vl10x_path='zsbe_data_vl10c_treppen',
+                     mb52_vl10x_path='mb52_vl10c_treppen',
+                     vl10x_clean_data_path='vl10c_clean_data_treppen',
+                     vl10x_variant_name=VL10C_VARIANT_NAME_TREPPEN,
+                     mb52_variant_name=MB52_VARIANT_NAME,
+                     is_treppen=True
+                     )
+
         # Handle the information for status file
         # program_status["COHV_CONVERSION_SYSTEM_MESSAGE"] = result_sap_messages
 
@@ -284,9 +299,13 @@ if __name__ == "__main__":
         time.sleep(1)
         close_excel_file(file_name=paths['mb52_vl10c'].name)
         time.sleep(1)
+        close_excel_file(file_name=paths['mb52_vl10c_treppen'].name)
+        time.sleep(1)
         close_excel_file(file_name=paths['mb52_vl10d'].name)
         time.sleep(1)
         close_excel_file(file_name=paths['zsbe_data_vl10d'].name)
+        time.sleep(1)
+        close_excel_file(file_name=paths['mb51_vl10c'].name)
 
         # Fill status file
         end_time = datetime.now().strftime("%H:%M:%S")
