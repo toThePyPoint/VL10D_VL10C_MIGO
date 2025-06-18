@@ -155,13 +155,13 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
                                                           axis=1)
     # sort headers
     headers = [
-        "SAP_nr", "product_name", "quantity", "unit", "stock", "goods_issue_date",
-        "document_number", "doc_position", "is_booking_req", "header",
-        "header_suffix", "source_loc", "loc_0004", "author", "loc_0005",
-        "loc_0007", "loc_0003", "loc_0024", "loc_0010", "loc_0750", "loc_0021",
-        "sales_office", "goods_recepient_number", "mrp_controller",
-        "procurement_type", "goods_recepient_name"
+        "SAP_nr", "product_name", "quantity", "unit", "stock", "loc_0004",
+        "goods_issue_date", "doc_position", "header", "header_suffix", "source_loc",
+        "is_booking_req", "author", "procurement_type", "loc_0007", "loc_0003",
+        "loc_0005", "loc_0750", "loc_0021", "loc_0024", "loc_0010", "sales_office",
+        "goods_recepient_number", "mrp_controller", "goods_recepient_name", "document_number"
     ]
+
     vl10x_merged_df = vl10x_merged_df[headers]
 
     # Fill out header_suffix - vl10d only
@@ -202,6 +202,7 @@ def collect_data(sap_session, vl_10x_raw_data_path="vl10d_raw_data", transaction
                                    suffixes=('_vl10c', '_mb51'))
         # rows with nan values in column 'name' contain items which weren't booked so far - we keep only these
         vl10x_merged_df = vl10x_merged_df[vl10x_merged_df['name'].isna()]
+        vl10x_merged_df.drop(columns=['name'], inplace=True)
 
     # save vl10x_merged_df to Excel file
     vl10x_merged_df.to_excel(paths[vl10x_clean_data_path], index=False)
